@@ -210,12 +210,46 @@ describe("message router", () => {
     assert.equal(s.tab.status.outcome, "rejected");
     assert.equal(s.tab.status.cmp, "sourcepoint");
 
-    for (const fn of mock._listeners.updated) fn(7, { status: "loading" }, {});
+    // Same-host reload (sites often reload after consent is saved): the
+    // rejection is carried so the popup doesn't say "No banner found".
+    for (const fn of mock._listeners.updated) fn(7, { status: "loading" }, { url: "https://www.example.com/next" });
     await new Promise((r) => setTimeout(r, 10));
     const after = await bg.handleMessage({ type: "getStatus", tabId: 7, url: "https://www.example.com/next" }, popupSender);
-    assert.equal(after.tab.status, null);
+    assert.equal(after.tab.status.outcome, "rejected");
+    assert.equal(after.tab.status.carried, true);
     assert.equal(after.tab.host, "example.com");
+    assert.deepEqual(mock._badges.at(-1), { tabId: 7, text: "✓" });
+
+    // The new document reports "none": the carried rejection still wins …
+    await bg.handleMessage({ type: "getSettings" }, contentSender(7, 0, "https://www.example.com/next", "https://www.example.com/next"));
+    await bg.handleMessage({ type: "status", status: { outcome: "none", layer: null, cmp: null, reason: "" } }, contentSender(7, 0, "https://www.example.com/next", "https://www.example.com/next"));
+    assert.equal((await bg.handleMessage({ type: "getStatus", tabId: 7 }, popupSender)).tab.status.carried, true);
+    // … but a fresh real outcome replaces it.
+    await bg.handleMessage({ type: "status", status: { outcome: "skipped", layer: "model", cmp: null, reason: "", code: "gate" } }, contentSender(7, 0, "https://www.example.com/next", "https://www.example.com/next"));
+    assert.equal((await bg.handleMessage({ type: "getStatus", tabId: 7 }, popupSender)).tab.status.outcome, "skipped");
+
+    // Navigating to another host drops everything.
+    await bg.handleMessage({ type: "status", status: { outcome: "rejected", layer: "rules", cmp: "onetrust", reason: "OneTrust" } }, contentSender(7, 0, "https://www.example.com/next", "https://www.example.com/next"));
+    for (const fn of mock._listeners.updated) fn(7, { status: "loading" }, { url: "https://other.example/" });
+    await new Promise((r) => setTimeout(r, 10));
+    const elsewhere = await bg.handleMessage({ type: "getStatus", tabId: 7, url: "https://other.example/" }, popupSender);
+    assert.equal(elsewhere.tab.status, null);
     assert.deepEqual(mock._badges.at(-1), { tabId: 7, text: "" });
+  });
+
+  test("navigation with an unknown destination carries the rejection until a different host reports in", async () => {
+    await bg.handleMessage({ type: "getSettings" }, contentSender(8, 0));
+    await bg.handleMessage({ type: "status", status: { outcome: "rejected", layer: "model", cmp: null, reason: "Reject all" } }, contentSender(8, 0));
+    for (const fn of mock._listeners.updated) fn(8, { status: "loading" }, {});
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal((await bg.handleMessage({ type: "getStatus", tabId: 8 }, popupSender)).tab.status.carried, true);
+    await bg.handleMessage({ type: "getSettings" }, contentSender(8, 0, "https://other.example/", "https://other.example/"));
+    assert.equal((await bg.handleMessage({ type: "getStatus", tabId: 8 }, popupSender)).tab.status, null);
+    // Closing the tab never carries.
+    await bg.handleMessage({ type: "status", status: { outcome: "rejected", layer: "model", cmp: null, reason: "" } }, contentSender(8, 0, "https://other.example/", "https://other.example/"));
+    for (const fn of mock._listeners.removed) fn(8);
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal((await bg.handleMessage({ type: "getStatus", tabId: 8 }, popupSender)).tab.status, null);
   });
 
   test("status: malformed records are ignored", async () => {

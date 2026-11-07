@@ -5,6 +5,7 @@
   const FALLBACK = {
     status_rejected_rule: "Rejected via $1 rule",
     status_rejected_model: "Rejected via on-device model",
+    status_carried: "The page reloaded after the banner was rejected",
     status_none: "No banner found",
     status_off: "Turned off",
     status_paused: "Paused on this site",
@@ -72,8 +73,10 @@
     const cmpName = ruleNames.get(s.cmp) || s.reason || s.cmp || "";
     const detail = s.layer === "model" && s.reason ? s.reason : "";
     switch (s.outcome) {
-      case "rejected":
-        return s.layer === "rules" ? { text: t("status_rejected_rule", cmpName), tone: "ok" } : { text: t("status_rejected_model"), tone: "ok", detail };
+      case "rejected": {
+        const carried = s.carried ? t("status_carried") : "";
+        return s.layer === "rules" ? { text: t("status_rejected_rule", cmpName), tone: "ok", detail: carried } : { text: t("status_rejected_model"), tone: "ok", detail: carried || detail };
+      }
       case "skipped":
         return { text: t(SKIP_KEYS[s.code] || "status_skipped"), tone: "warn", detail };
       default:

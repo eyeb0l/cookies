@@ -13,6 +13,7 @@
     "placeholders": { "cmp": { "content": "$1", "example": "OneTrust" } }
   },
   "status_rejected_model": { "message": "Rejected via on-device model", "description": "The on-device model picked the reject button." },
+  "status_carried": { "message": "The page reloaded after the banner was rejected", "description": "Shown when the site reloaded itself after the reject click, so the current document never saw a banner." },
   "status_none": { "message": "No banner found", "description": "No cookie banner was found on this page." },
   "status_off": { "message": "Turned off", "description": "The extension is disabled globally." },
   "status_paused": { "message": "Paused on this site", "description": "The extension is paused for this site." },

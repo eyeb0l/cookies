@@ -25,6 +25,8 @@ const OUTCOMES = new Set(["rejected", "skipped", "none", "error"]);
 const LAYERS = new Set(["rules", "model"]);
 const CANDIDATE_ID = /^c\d{1,2}$/;
 const OUTCOME_RANK = { rejected: 4, error: 3, skipped: 2, none: 1 };
+// A rejection stays visible in the popup this long across same-host reloads.
+const CARRY_MS = 10 * 60 * 1000;
 
 const api = typeof browser !== "undefined" ? browser : globalThis.browser;
 
@@ -152,7 +154,7 @@ function sanitizeStatus(raw) {
 // ---------------------------------------------------------------------------
 // State
 
-/** tabId -> { host, frames: { [frameId]: status }, classify: number } */
+/** tabId -> { host, frames: { [frameId]: status }, classify: number, carry?: { host, status } } */
 let tabs = new Map();
 let stateLoaded = null;
 
@@ -209,6 +211,12 @@ function aggregateStatus(entry) {
     if (s.outcome === "none" && frameId !== "0") continue;
     if (!best || OUTCOME_RANK[s.outcome] > OUTCOME_RANK[best.outcome] || (OUTCOME_RANK[s.outcome] === OUTCOME_RANK[best.outcome] && s.at > best.at)) best = s;
   }
+  // Many sites reload once consent is saved; the next document then finds no
+  // banner. Report the rejection that caused that instead of "none".
+  const carry = entry.carry;
+  if ((!best || best.outcome === "none") && carry && carry.status && (!entry.host || entry.host === carry.host) && Date.now() - (carry.status.at || 0) <= CARRY_MS) {
+    return carry.status;
+  }
   return best;
 }
 
@@ -224,9 +232,22 @@ async function updateBadge(tabId) {
   }
 }
 
-async function clearTab(tabId) {
+/**
+ * Forget a tab's state. On navigation (`carry`), a rejection is kept for the
+ * popup when the new document is on the same host (or the host is not known
+ * yet); it is dropped the moment a different host shows up.
+ */
+async function clearTab(tabId, { carry = false, url = "" } = {}) {
   await loadState();
+  const previous = tabs.get(tabId);
   tabs.delete(tabId);
+  if (carry && previous && previous.host) {
+    const status = aggregateStatus(previous);
+    const nextHost = hostFromUrl(url);
+    if (status && status.outcome === "rejected" && (!nextHost || nextHost === previous.host)) {
+      tabs.set(tabId, { host: nextHost, frames: {}, classify: 0, carry: { host: previous.host, status: { ...status, carried: true } } });
+    }
+  }
   await persistState();
   await updateBadge(tabId);
 }
@@ -362,9 +383,10 @@ if (api && api.runtime && api.runtime.onMessage) {
 
 if (api && api.tabs) {
   if (api.tabs.onUpdated) {
-    api.tabs.onUpdated.addListener((tabId, changeInfo) => {
-      // A new document is loading: the previous page's status no longer applies.
-      if (changeInfo && changeInfo.status === "loading") clearTab(tabId);
+    api.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      // A new document is loading: the previous page's status no longer
+      // applies, except that a same-host reload keeps showing the rejection.
+      if (changeInfo && changeInfo.status === "loading") clearTab(tabId, { carry: true, url: tab && tab.url });
     });
   }
   if (api.tabs.onRemoved) api.tabs.onRemoved.addListener((tabId) => clearTab(tabId));
