@@ -73,9 +73,29 @@
     return null;
   }
 
-  /** `ancestor.contains(node)` that also follows shadow hosts upwards. */
+  /**
+   * Parent in the composed (rendered) tree: a slotted node's parent is its
+   * <slot>, otherwise the DOM parent or shadow host.
+   */
+  function composedParent(node) {
+    if (!node) return null;
+    if (node.assignedSlot) return node.assignedSlot;
+    return parentOrHost(node);
+  }
+
+  /**
+   * True when a light-DOM child of a shadow host is not assigned to any slot:
+   * it is not rendered at all. (Closed roots report no shadowRoot, so this
+   * never misfires for them.)
+   */
+  function isUnslotted(node) {
+    const parent = node.parentElement;
+    return !!(parent && parent.shadowRoot && !node.assignedSlot);
+  }
+
+  /** `ancestor.contains(node)` in the composed tree (follows slots and shadow hosts). */
   function containsDeep(ancestor, node) {
-    for (let n = node; n; n = parentOrHost(n)) {
+    for (let n = node; n; n = composedParent(n)) {
       if (n === ancestor) return true;
     }
     return false;
@@ -132,7 +152,10 @@
   function isVisible(el, env) {
     if (env && typeof env.isVisible === "function") return !!env.isVisible(el);
     if (!el || el.nodeType !== ELEMENT_NODE || !el.isConnected) return false;
-    for (let n = el; n; n = parentOrHost(n)) {
+    // Walk the composed tree so a hidden <slot> (or shadow wrapper) hides the
+    // slotted control too.
+    for (let n = el; n; n = composedParent(n)) {
+      if (isUnslotted(n)) return false;
       if (n.hasAttribute("hidden")) return false;
       if (n.getAttribute("aria-hidden") === "true") return false;
       if (n.tagName === "DIALOG" && !n.hasAttribute("open")) return false;
@@ -384,29 +407,101 @@
   function collectButtonLike(container, env, options = {}) {
     const limit = options.limit ?? 200;
     const out = [];
+    forEachComposed(container, (el) => {
+      if (out.length >= limit) return "stop";
+      if (SKIP_TEXT_TAGS.has(el.tagName)) return "skip";
+      if (el !== container && isButtonLike(el)) {
+        if (isVisible(el, env)) out.push(el);
+        return "skip";
+      }
+      return undefined;
+    });
+    return out;
+  }
+
+  /**
+   * Visit `root` and its descendants in composed (rendered) tree order:
+   * a shadow host's shadow root replaces its light children, and a <slot> is
+   * replaced by its assigned nodes (or its fallback content). The visitor may
+   * return "skip" (don't descend) or "stop". Bounded by `budget` elements.
+   */
+  function forEachComposed(root, visit, budget = 5000) {
+    let remaining = budget;
+    let stopped = false;
     const walk = (node) => {
-      if (out.length >= limit) return;
+      if (stopped) return;
       if (node.nodeType === ELEMENT_NODE) {
-        const el = node;
-        if (SKIP_TEXT_TAGS.has(el.tagName)) return;
-        if (el !== container && isButtonLike(el)) {
-          if (isVisible(el, env)) out.push(el);
+        if (--remaining < 0) {
+          stopped = true;
           return;
         }
-        if (el.shadowRoot) walk(el.shadowRoot);
+        const verdict = visit(node);
+        if (verdict === "stop") {
+          stopped = true;
+          return;
+        }
+        if (verdict === "skip") return;
+        if (node.tagName === "SLOT" && typeof node.assignedNodes === "function") {
+          const assigned = node.assignedNodes({ flatten: true });
+          if (assigned.length) {
+            for (const child of assigned) walk(child);
+            return;
+          }
+        }
+        if (node.shadowRoot) {
+          walk(node.shadowRoot);
+          return;
+        }
       }
       for (const child of node.childNodes) {
         if (child.nodeType === ELEMENT_NODE || child.nodeType === DOCUMENT_FRAGMENT_NODE) walk(child);
       }
     };
-    walk(container);
+    walk(root);
+  }
+
+  /** Composed-tree descendants of `root` (excluding root), bounded. */
+  function composedDescendants(root, limit = 2000) {
+    const out = [];
+    forEachComposed(root, (el) => {
+      if (el !== root) out.push(el);
+      return out.length >= limit ? "stop" : undefined;
+    }, limit + 1);
     return out;
+  }
+
+  /**
+   * Every open shadow root under `root` (nested ones included), bounded by a
+   * node budget so a huge page can't make this expensive.
+   */
+  function openShadowRoots(root, nodeBudget = 20000) {
+    const roots = [];
+    let budget = nodeBudget;
+    const queue = [root];
+    while (queue.length && budget > 0) {
+      const scope = queue.shift();
+      let all;
+      try {
+        all = scope.querySelectorAll("*");
+      } catch {
+        continue;
+      }
+      for (const el of all) {
+        if (--budget <= 0) break;
+        if (el.shadowRoot) {
+          roots.push(el.shadowRoot);
+          queue.push(el.shadowRoot);
+        }
+      }
+    }
+    return roots;
   }
 
   const api = Object.freeze({
     normalizeText,
     truncate,
     parentOrHost,
+    composedParent,
     containsDeep,
     hasLayout,
     rectOf,
@@ -420,6 +515,9 @@
     isSameDocumentLink,
     isButtonLike,
     collectButtonLike,
+    forEachComposed,
+    composedDescendants,
+    openShadowRoots,
   });
 
   NS.dom = api;

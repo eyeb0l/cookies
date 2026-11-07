@@ -92,8 +92,8 @@ describe("consent container detection — negatives", () => {
     assert.equal(detect.findBestContainer(doc), null);
   });
 
-  test("low stacking: nested fixed element without z-index", () => {
-    const doc = load(`<!doctype html><body><div><div><div class="x" style="position:fixed">We use cookies.
+  test("low stacking: nested sticky element without z-index", () => {
+    const doc = load(`<!doctype html><body><div><div><div class="x" style="position:sticky">We use cookies.
       <button>Reject all</button><button>Accept all</button></div></div></div></body>`);
     assert.equal(detect.evaluateContainer(doc.querySelector(".x")).reason, "low-stacking");
   });

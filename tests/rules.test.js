@@ -17,7 +17,7 @@ describe("rules data", () => {
       ids.add(r.id);
       assert.ok(r.name && typeof r.name === "string");
       assert.ok(Array.isArray(r.detect) && r.detect.length > 0, `${r.id} detect`);
-      assert.ok(Array.isArray(r.reject) && r.reject.length > 0, `${r.id} reject`);
+      assert.ok((Array.isArray(r.reject) && r.reject.length > 0) || (Array.isArray(r.steps) && r.steps.length > 0), `${r.id} needs reject or steps`);
       assert.ok(r.frames === undefined || r.frames === "any" || r.frames === "top", `${r.id} frames`);
       if (r.steps) assert.ok(cmp.finalStepIndex(r.steps) >= 0, `${r.id} steps need a final click`);
     }
@@ -28,7 +28,7 @@ describe("rules data", () => {
     const doc = load("<!doctype html><body></body>");
     const all = [];
     for (const r of rules) {
-      for (const e of [...r.detect, ...r.reject, ...(r.banner || []), ...(r.shadow || [])]) all.push(cmp.entryOf(e));
+      for (const e of [...r.detect, ...(r.reject || []), ...(r.banner || []), ...(r.shadow || [])]) all.push(cmp.entryOf(e));
       for (const s of r.steps || []) for (const e of [...(s.click || []), ...(s.waitFor || [])]) all.push(cmp.entryOf(e));
     }
     for (const { selector, host } of all) {
@@ -39,7 +39,7 @@ describe("rules data", () => {
 
   test("reject selectors never name accept/agree/allow controls (except necessary-only)", () => {
     for (const r of rules) {
-      const finals = [...r.reject, ...((r.steps && r.steps[cmp.finalStepIndex(r.steps)].click) || [])];
+      const finals = [...(r.reject || []), ...((r.steps && r.steps[cmp.finalStepIndex(r.steps)].click) || [])];
       for (const e of finals) {
         const { selector } = cmp.entryOf(e);
         if (/accept|agree|allow|consent-button|optin/i.test(selector.replace(/data-cookiefirst-action|optout|OptinDecline/gi, ""))) {

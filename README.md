@@ -47,6 +47,12 @@ the Safari extension is enabled and whether the on-device model is available. En
 Safari → Settings → Extensions. While developing with an ad-hoc signature, turn on
 Safari → Develop → Allow Unsigned Extensions.
 
+To build, sign with your Apple Development certificate, and install to /Applications in one step:
+
+```sh
+scripts/install-macos.sh
+```
+
 Command-line build (no signing):
 
 ```sh

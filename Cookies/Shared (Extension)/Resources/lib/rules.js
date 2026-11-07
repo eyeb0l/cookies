@@ -8,7 +8,8 @@
  *   banner            optional: selectors whose visibility means the banner is
  *                     showing; multi-step flows only start when one is visible
  *                     (defaults to `detect`)
- *   reject            first *visible*, enabled match is clicked
+ *   reject            first *visible*, enabled match is clicked (may be omitted
+ *                     when the rule is steps-only)
  *   steps             optional multi-step flow when no direct reject is visible:
  *                     [{ click, waitFor?, optional? }]; the last non-optional
  *                     click is the reject. `probe: true` additionally requires
@@ -344,6 +345,37 @@
       detect: ['meta[name="generator"][content*="jimdo" i]', 'script[src*="jimdo" i]', 'link[href*="jimdo" i]'],
       reject: [{ selector: '[class*="cookie" i] button, [id*="cookie" i] button, [class*="cookie" i] [role="button"]', text: R }],
       frames: "top",
+    },
+    {
+      id: "govuk",
+      name: "GOV.UK cookie banner",
+      // GOV.UK Design System banner (used across UK government services). It
+      // is an in-flow block; after rejecting it shows a confirmation and a
+      // "Hide cookie message" button, so the flow is: reject, then hide.
+      detect: [".govuk-cookie-banner", "#global-cookie-message", '[data-module="cookie-banner"]'],
+      banner: [".govuk-cookie-banner__message"],
+      steps: [
+        {
+          click: [
+            '.govuk-cookie-banner button[data-reject-cookies="true"]',
+            '.govuk-cookie-banner button[value="reject"]',
+            { selector: '.govuk-cookie-banner button, .govuk-cookie-banner input[type="submit"], .govuk-cookie-banner a.govuk-button', text: R },
+          ],
+        },
+        { click: ['.govuk-cookie-banner button[data-hide-cookie-banner="true"]', { selector: ".govuk-cookie-banner button", text: /^\s*hide/i }], optional: true },
+      ],
+      frames: "top",
+    },
+    {
+      id: "reddit",
+      name: "Reddit",
+      // The dialog and its buttons are light DOM slotted into shadow chrome.
+      detect: ["#data-protection-consent-dialog", "reddit-cookie-banner", "[bundlename=reddit_cookie_banner]"],
+      reject: [
+        { selector: "#data-protection-consent-dialog rpl-modal-card > button.button-secondary", text: R },
+        { selector: "#data-protection-consent-dialog button", text: R },
+      ],
+      frames: "any",
     },
     {
       id: "cookieconsent",

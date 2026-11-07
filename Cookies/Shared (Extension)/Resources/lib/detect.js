@@ -55,8 +55,18 @@
   const HINT_SELECTOR = [
     '[id*="cookie" i]', '[class*="cookie" i]', '[id*="consent" i]', '[class*="consent" i]', '[id*="gdpr" i]',
     '[class*="gdpr" i]', '[id*="cmp" i]', '[class*="cmp" i]', '[id*="privacy" i]', '[class*="privacy" i]',
-    '[aria-label*="cookie" i]', '[aria-label*="consent" i]', '[aria-label*="privacy" i]',
+    '[aria-label*="cookie" i]', '[aria-label*="consent" i]', '[aria-label*="privacy" i]', '[aria-label*="gdpr" i]',
+    '[data-module*="cookie" i]', '[role="region"]',
   ].join(",");
+
+  // In-flow (non-overlay) banners: e.g. the GOV.UK Design System banner is a
+  // static block at the top of <body>. They need a strong naming/semantic
+  // hint, known geometry near a viewport edge, and strong consent vocabulary.
+  const INFLOW_ROLES = new Set(["region", "complementary", "banner", "alert", "status", "alertdialog"]);
+  const INFLOW_HINT_RE = /cookie|consent|gdpr/i;
+  const INFLOW_EDGE_PX = 150;
+  const INFLOW_MAX_VIEWPORT_FRACTION = 0.6;
+  const SHADOW_HINT_BUDGET = 300; // nodes searched inside a hinted shadow host
 
   const keywordHits = (text, re) => {
     const global = new RegExp(re.source, "giu");
@@ -68,7 +78,15 @@
     return hits;
   };
 
-  /** Quick page-level pre-check: does any consent vocabulary appear at all? */
+  const safeQueryAll = (root, selector) => {
+    try {
+      return Array.from(root.querySelectorAll(selector));
+    } catch {
+      return [];
+    }
+  };
+
+  /** Quick page-level pre-check: does any consent vocabulary or naming appear at all? */
   function pageMayHaveBanner(doc) {
     const body = doc && doc.body;
     if (!body) return false;
@@ -77,9 +95,14 @@
     if (STRONG_RE.test(text) || WEAK_RE.test(text)) return true;
     // Banners rendered into a shadow root don't appear in textContent.
     for (const el of body.children) if (el.shadowRoot) return true;
+    // A consent-named element anywhere (shadow roots included, bounded).
+    for (const root of [doc, ...dom.openShadowRoots(doc)]) {
+      if (safeQueryAll(root, HINT_SELECTOR).length) return true;
+    }
     return false;
   }
 
+  /** Overlay-style containers: fixed/sticky, dialogs, modals. */
   function isPositioned(el) {
     if (el.tagName === "DIALOG") return true;
     const role = (el.getAttribute("role") || "").toLowerCase();
@@ -98,9 +121,61 @@
     return parent === doc.body || parent === doc.documentElement;
   }
 
-  /** z-index ≥ 10 on the element or an ancestor, a top-level child, or a modal <dialog>. */
-  function hasHighStacking(el) {
+  function viewportOf(el, env) {
+    if (env && env.viewport) return { width: env.viewport.width ?? 0, height: env.viewport.height ?? 0, scrollY: env.viewport.scrollY ?? 0 };
+    const win = el.ownerDocument && el.ownerDocument.defaultView;
+    return { width: (win && win.innerWidth) || 0, height: (win && win.innerHeight) || 0, scrollY: (win && win.scrollY) || 0 };
+  }
+
+  function hasInflowHint(el) {
+    const role = (el.getAttribute("role") || "").toLowerCase();
+    if (INFLOW_ROLES.has(role)) return true;
+    const cls = typeof el.className === "string" ? el.className : el.getAttribute("class") || "";
+    return INFLOW_HINT_RE.test(`${el.getAttribute("aria-label") || ""} ${el.id || ""} ${cls} ${el.getAttribute("data-module") || ""}`);
+  }
+
+  /**
+   * In-flow banner: strong hint, geometry known (fail closed when it isn't),
+   * top edge near the document top or bottom edge near the viewport bottom,
+   * and no taller than 60 % of the viewport.
+   */
+  function isInflowBanner(el, env) {
+    if (!hasInflowHint(el)) return false;
+    const rect = dom.rectOf(el, env);
+    if (!rect || rect.height <= 0) return false;
+    const vp = viewportOf(el, env);
+    if (!(vp.height > 0)) return false;
+    if (rect.height > vp.height * INFLOW_MAX_VIEWPORT_FRACTION) return false;
+    const nearTop = rect.top + vp.scrollY <= INFLOW_EDGE_PX && rect.bottom > 0;
+    const nearBottom = Math.abs(vp.height - rect.bottom) <= INFLOW_EDGE_PX;
+    return nearTop || nearBottom;
+  }
+
+  /** "positioned" | "inflow" | null */
+  function bannerKind(el, env) {
+    if (!el || el.nodeType !== 1) return null;
+    if (isPositioned(el)) return "positioned";
+    if (isInflowBanner(el, env)) return "inflow";
+    return null;
+  }
+
+  function isBannerLike(el, env) {
+    return bannerKind(el, env) !== null;
+  }
+
+  /** Direct child of a shadow root (the root's top-level content). */
+  const isShadowTopLevel = (el) => !!(el.parentNode && el.parentNode.nodeType === 11 && el.parentNode.host);
+
+  /**
+   * Overlays: `position: fixed` always paints above in-flow content; sticky and
+   * dialogs need z-index ≥ 10 (on itself or an ancestor), a top-level position,
+   * or an open modal <dialog>. In-flow banners must be top-level.
+   */
+  function hasHighStacking(el, kind = "positioned") {
+    if (kind === "inflow") return isTopLevelChild(el) || isShadowTopLevel(el);
     if (el.tagName === "DIALOG" && el.hasAttribute("open")) return true;
+    const own = dom.styleOf(el);
+    if (own && own.position === "fixed") return true;
     if (isTopLevelChild(el)) return true;
     const doc = el.ownerDocument;
     for (let n = el; n && n !== doc.body && n !== doc.documentElement; n = dom.parentOrHost(n)) {
@@ -111,12 +186,18 @@
     return false;
   }
 
+  /** Composed-tree query (shadow roots and slotted content included). */
   const qs = (root, selector) => {
-    try {
-      return dom.querySelectorAllDeep(root, selector, { limit: 50 });
-    } catch {
-      return [];
+    const out = [];
+    for (const el of dom.composedDescendants(root, 3000)) {
+      try {
+        if (el.matches(selector)) out.push(el);
+      } catch {
+        return [];
+      }
+      if (out.length >= 50) break;
     }
+    return out;
   };
 
   /**
@@ -157,16 +238,21 @@
     if (!el || el.nodeType !== 1) return fail("not-element");
     const doc = el.ownerDocument;
     if (el === doc.body || el === doc.documentElement) return fail("root");
-    if (!isPositioned(el)) return fail("not-positioned");
+    const kind = bannerKind(el, env);
+    if (!kind) return fail("not-positioned");
     if (!dom.isVisible(el, env)) return fail("hidden");
     const rect = dom.rectOf(el, env);
     if (rect && (rect.width < MIN_WIDTH || rect.height < MIN_HEIGHT)) return fail("too-small");
-    if (!hasHighStacking(el)) return fail("low-stacking");
+    if (!hasHighStacking(el, kind)) return fail("low-stacking");
 
     const text = dom.visibleText(el, { max: TEXT_MAX, env });
+    // Text the size of a whole page/app shell is not a notice.
+    if (text.length >= TEXT_MAX) return fail("too-much-text");
     const strong = keywordHits(text, STRONG_RE);
     const weak = keywordHits(text, WEAK_RE);
     if (!strong.size && !weak.size) return fail("no-keyword");
+    // A static region that only mentions "privacy" must not qualify.
+    if (kind === "inflow" && !strong.size) return fail("no-strong-keyword");
 
     const excluded = exclusionReason(el);
     if (excluded) return fail(excluded);
@@ -188,49 +274,66 @@
     if (HINT_RE.test(hintOf(el))) score += 2;
     const role = (el.getAttribute("role") || "").toLowerCase();
     if (el.tagName === "DIALOG" || role === "dialog" || role === "alertdialog" || el.getAttribute("aria-modal") === "true") score += 1;
-    if (text.length >= TEXT_MAX) score -= 2; // likely a whole page/app shell, not a notice
 
-    return { eligible: true, score, text, buttons, hasReject, hasAccept };
+    return { eligible: true, kind, score, text, buttons, hasReject, hasAccept };
   }
 
-  /** Nearest positioned ancestor (inclusive), crossing shadow boundaries. */
-  function positionedAncestor(el, maxDepth = 15) {
+  /**
+   * Nearest banner-like ancestor (inclusive) in the composed tree. In-flow
+   * candidates that aren't top-level are skipped (they can never qualify) so
+   * the climb continues to the outer banner.
+   */
+  function positionedAncestor(el, env, maxDepth = 15) {
     const doc = el.ownerDocument;
     let depth = 0;
-    for (let n = el; n && depth < maxDepth; n = dom.parentOrHost(n), depth++) {
+    for (let n = el; n && depth < maxDepth; n = dom.composedParent(n), depth++) {
+      if (n.nodeType !== 1) continue;
       if (n === doc.body || n === doc.documentElement) return null;
-      if (isPositioned(n)) return n;
+      const kind = bannerKind(n, env);
+      if (kind === "positioned") return n;
+      if (kind === "inflow" && hasHighStacking(n, kind)) return n;
     }
     return null;
   }
 
   /** Gather elements worth evaluating, cheapest sources first. */
-  function candidatePool(doc, { scan = true } = {}) {
+  function candidatePool(doc, { scan = true, env } = {}) {
     const pool = new Set();
     const add = (el) => {
-      const p = el && positionedAncestor(el);
+      const p = el && positionedAncestor(el, env);
       if (p) pool.add(p);
     };
     const body = doc.body;
     if (!body) return [];
-    const roots = [doc];
-    for (const child of body.children) if (child.shadowRoot) roots.push(child.shadowRoot);
+    const roots = [doc, ...dom.openShadowRoots(doc)];
     for (const root of roots) {
-      for (const el of root.querySelectorAll(SEMANTIC_SELECTOR)) pool.add(el);
-      for (const el of root.querySelectorAll(HINT_SELECTOR)) add(el);
+      for (const el of safeQueryAll(root, SEMANTIC_SELECTOR)) pool.add(el);
+      for (const el of safeQueryAll(root, HINT_SELECTOR)) {
+        add(el);
+        // A consent-named shadow host may render its overlay inside its own
+        // shadow root (e.g. Reddit): collect positioned elements in there.
+        if (el.shadowRoot) {
+          for (const inner of dom.composedDescendants(el.shadowRoot, SHADOW_HINT_BUDGET)) {
+            if (isPositioned(inner)) pool.add(inner);
+          }
+        }
+      }
     }
     for (const child of body.children) {
       add(child);
       for (const grandchild of child.children) add(grandchild);
     }
     if (scan) {
-      // Bounded fallback for fixed/sticky banners with no semantic or naming hints.
-      const all = body.getElementsByTagName("*");
-      const n = Math.min(all.length, SCAN_LIMIT);
-      for (let i = 0; i < n; i++) {
-        const el = all[i];
-        const cs = dom.styleOf(el);
-        if (cs && (cs.position === "fixed" || cs.position === "sticky")) pool.add(el);
+      // Bounded fallback for fixed/sticky banners with no semantic or naming
+      // hints, piercing open shadow roots.
+      let budget = SCAN_LIMIT;
+      for (const root of [body, ...roots.slice(1)]) {
+        for (const el of root.querySelectorAll("*")) {
+          if (--budget < 0) break;
+          const cs = dom.styleOf(el);
+          if (cs && (cs.position === "fixed" || cs.position === "sticky")) pool.add(el);
+        }
+        if (budget < 0) break;
       }
     }
     return Array.from(pool);
@@ -246,9 +349,9 @@
       }
       return out;
     };
-    let results = evaluate(candidatePool(doc, { scan: false }));
+    let results = evaluate(candidatePool(doc, { scan: false, env: options.env }));
     // Only pay for the full position scan when the cheap sources found nothing.
-    if (!results.length && options.scan !== false) results = evaluate(candidatePool(doc, { scan: true }));
+    if (!results.length && options.scan !== false) results = evaluate(candidatePool(doc, { scan: true, env: options.env }));
     // Prefer higher scores; on ties prefer the innermost (most specific) element.
     results.sort((a, b) => b.score - a.score || (dom.containsDeep(a.element, b.element) ? 1 : dom.containsDeep(b.element, a.element) ? -1 : 0));
     return results;
@@ -268,6 +371,9 @@
     WEAK_KEYWORDS: Object.freeze(WEAK_KEYWORDS.slice()),
     pageMayHaveBanner,
     isPositioned,
+    isInflowBanner,
+    isBannerLike,
+    bannerKind,
     hasHighStacking,
     exclusionReason,
     evaluateContainer,
