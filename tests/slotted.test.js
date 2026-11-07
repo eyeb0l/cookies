@@ -271,3 +271,83 @@ describe("Nested in-flow banners (NHS, Twitch)", () => {
     assert.equal(detect.evaluateContainer(banner, { env }).reason, "not-positioned");
   });
 });
+
+describe("AppConsent (consent UI inside a srcdoc iframe)", () => {
+  const { fixture } = require("./helpers.js");
+  // jsdom does not load srcdoc, so the frame document is filled in by hand;
+  // the iframe has no src, which is what makes it an inline frame.
+  const setup = ({ withSkip = true } = {}) => {
+    const doc = load("cmp-appconsent.html", { url: "https://www.lefigaro.fr/" });
+    const frame = doc.querySelector("#appconsent iframe");
+    const inner = frame.contentDocument;
+    assert.ok(inner && inner.body, "jsdom gives inline frames a document");
+    inner.body.innerHTML = fixture("cmp-appconsent-frame.html");
+    if (!withSkip) inner.querySelector(".button__skip").remove();
+    return { doc, frame, inner };
+  };
+
+  test("dom: the composed walk crosses into the inline frame", () => {
+    const { doc, frame, inner } = setup();
+    const skip = inner.querySelector(".button__skip");
+    assert.equal(dom.isInlineFrame(frame), true);
+    assert.equal(dom.frameDocumentOf(frame), inner);
+    assert.equal(dom.composedParent(inner.documentElement), frame);
+    assert.equal(dom.containsDeep(frame, skip), true);
+    assert.equal(dom.containsDeep(doc.body, skip), true);
+    assert.equal(dom.isVisible(skip), true);
+    assert.match(dom.visibleText(frame), /Continue without accepting.*Make a choice for your data.*Accept all/);
+    assert.deepEqual(
+      dom.collectButtonLike(frame).map((b) => dom.labelOf(b).text),
+      ["Continue without accepting", "our 251 partners", "privacy policy", "Set up", "Accept all", "Already subscribed? Sign in"],
+    );
+    // A frame with a real src is somebody else's document.
+    const external = doc.createElement("iframe");
+    external.src = "https://ads.example/x";
+    doc.body.append(external);
+    assert.equal(dom.isInlineFrame(external), false);
+    assert.equal(dom.inlineFrameDocuments(doc).length, 1);
+  });
+
+  test("Layer 1: appconsent rule clicks 'Continue without accepting' inside the frame", () => {
+    const { doc, inner } = setup();
+    const clicks = [];
+    inner.addEventListener("click", (e) => clicks.push(e.target.textContent.trim()), true);
+    const action = cmp.findAction(doc);
+    assert.ok(action && action.kind === "reject", `expected reject, got ${action && action.kind}`);
+    assert.equal(action.rule.id, "appconsent");
+    assert.equal(action.element.className.includes("button__skip"), true);
+    action.element.click();
+    assert.deepEqual(clicks, ["Continue without accepting"]);
+    assert.match(cmp.bannerElementFor(action.rule, action.element).className, /page__banner|modal__banner/);
+  });
+
+  test("Layer 1: the 'refuseAll' slot holding a sign-in link is never clicked", () => {
+    const { doc } = setup({ withSkip: false });
+    const action = cmp.findAction(doc);
+    assert.ok(action, "CMP still detected");
+    assert.equal(action.kind, "detected");
+  });
+
+  test("Layer 2 (rules off): the fixed iframe is the container; the sign-in button is dropped; the gate follows the frame", () => {
+    const { doc, frame, inner } = setup();
+    const best = detect.findBestContainer(doc);
+    assert.ok(best, "no container");
+    assert.equal(best.element, frame);
+    const built = candidates.buildRequest(frame, { host: "www.lefigaro.fr" });
+    assert.ok(built.request, built.reason);
+    const texts = built.request.candidates.map((c) => c.text);
+    assert.ok(texts.includes("Continue without accepting"));
+    assert.ok(texts.includes("Accept all"));
+    assert.ok(!texts.some((t) => /sign in/i.test(t)), "danger-listed control must not be sent");
+    const id = built.request.candidates.find((c) => c.text === "Continue without accepting").id;
+    const verdict = gate.shouldClick(
+      { type: "identifyRejectControlResult", version: 1, status: "ok", candidateId: id, confidence: "high", reason: "", engine: "foundation-models" },
+      built.map,
+      frame,
+      built.snapshot,
+      { clicked: false, enabled: true, hostDisabled: false },
+    );
+    assert.equal(verdict.ok, true, verdict.reason);
+    assert.equal(verdict.element, inner.querySelector(".button__skip"));
+  });
+});

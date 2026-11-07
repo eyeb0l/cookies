@@ -395,6 +395,17 @@
       frames: "top",
     },
     {
+      id: "appconsent",
+      name: "AppConsent",
+      // SFBX AppConsent (Le Figaro and other French publishers) renders in a
+      // srcdoc iframe. The ".button__refuseAll" slot is sometimes a sign-in
+      // link, so every target must read as a reject.
+      detect: [".modal__banner .button__acceptAll", ".page__banner .banner__buttons", "button.button__openPrivacyCenter"],
+      banner: [".modal__banner", ".page__banner"],
+      reject: [{ selector: "button.button__skip, button.button__refuseAll", text: R }],
+      frames: "any",
+    },
+    {
       id: "reddit",
       name: "Reddit",
       // The dialog and its buttons are light DOM slotted into shadow chrome.

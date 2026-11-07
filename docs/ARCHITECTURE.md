@@ -67,6 +67,11 @@ A candidate container must satisfy all of:
 - contains **no** `input[type=password]`, `input[type=email]` with a submit, credit-card
   fields (`autocomplete=cc-*`), `<form method=post>` with text inputs, or file inputs.
 
+A consent UI drawn into a same-origin inline frame (`srcdoc` or `about:blank`, as AppConsent does)
+is handled from the parent document: the fixed `<iframe>` is the container and the composed-tree
+walk (text, buttons, containment, visibility) continues inside its document, exactly as it does for
+open shadow roots. Frames with a real `src` are left to their own content script.
+
 Pick the best-scoring container. If none scores above the threshold, do nothing.
 
 ### Candidate controls

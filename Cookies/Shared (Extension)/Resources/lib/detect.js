@@ -331,6 +331,11 @@
       add(child);
       for (const grandchild of child.children) add(grandchild);
     }
+    // Consent UIs drawn into a srcdoc/about:blank iframe (AppConsent): the
+    // fixed <iframe> is the container; the composed walk reads inside it.
+    for (const frame of safeQueryAll(doc, "iframe")) {
+      if (dom.frameDocumentOf(frame)) add(frame);
+    }
     if (scan) {
       // Bounded fallback for fixed/sticky banners with no semantic or naming
       // hints, piercing open shadow roots.

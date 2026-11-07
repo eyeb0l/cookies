@@ -37,11 +37,14 @@
     }
   }
 
-  /** Roots to search for an entry: document (+ rule shadow roots), or one host's shadow root. */
+  /**
+   * Roots to search for an entry: document, its inline (srcdoc/about:blank)
+   * frame documents, and the rule's shadow roots; or one host's shadow root.
+   */
   function rootsFor(doc, rule, entry) {
     const shadowRootsOf = (hostSelector) => safeQueryAll(doc, hostSelector).map((h) => h.shadowRoot).filter(Boolean);
     if (entry.host) return shadowRootsOf(entry.host);
-    const roots = [doc];
+    const roots = [doc, ...dom.inlineFrameDocuments(doc)];
     for (const host of rule.shadow || []) roots.push(...shadowRootsOf(host));
     return roots;
   }

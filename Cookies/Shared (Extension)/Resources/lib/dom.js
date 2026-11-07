@@ -74,13 +74,65 @@
   }
 
   /**
+   * Same-origin frame with no document of its own (`srcdoc`, or `about:blank`
+   * drawn by the parent's scripts). Content scripts may not be injected into
+   * such frames, so the parent treats them as part of its own tree.
+   */
+  function isInlineFrame(el) {
+    if (!el || el.tagName !== "IFRAME") return false;
+    if (el.hasAttribute("srcdoc")) return true;
+    const src = (el.getAttribute("src") || "").trim();
+    return src === "" || /^about:blank/i.test(src);
+  }
+
+  /** The inline frame's document when it is accessible and has a body, else null. */
+  function frameDocumentOf(el) {
+    if (!isInlineFrame(el)) return null;
+    try {
+      const doc = el.contentDocument;
+      return doc && doc.body ? doc : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Inline-frame documents under `doc` (one level deep, bounded). */
+  function inlineFrameDocuments(doc, limit = 10) {
+    const out = [];
+    let frames;
+    try {
+      frames = doc.querySelectorAll("iframe");
+    } catch {
+      return out;
+    }
+    for (const f of frames) {
+      const fd = frameDocumentOf(f);
+      if (fd) out.push(fd);
+      if (out.length >= limit) break;
+    }
+    return out;
+  }
+
+  /**
    * Parent in the composed (rendered) tree: a slotted node's parent is its
-   * <slot>, otherwise the DOM parent or shadow host.
+   * <slot>, otherwise the DOM parent or shadow host; the root of an inline
+   * frame's document continues at the <iframe> element.
    */
   function composedParent(node) {
     if (!node) return null;
     if (node.assignedSlot) return node.assignedSlot;
-    return parentOrHost(node);
+    const parent = parentOrHost(node);
+    if (parent) return parent;
+    const doc = node.parentNode;
+    if (doc && doc.nodeType === 9) {
+      try {
+        const frame = doc.defaultView && doc.defaultView.frameElement;
+        if (frame && isInlineFrame(frame)) return frame;
+      } catch {
+        /* cross-origin parent: stop here */
+      }
+    }
+    return null;
   }
 
   /**
@@ -235,7 +287,7 @@
     };
 
     const elementHidden = (el) => {
-      if (SKIP_TEXT_TAGS.has(el.tagName)) return true;
+      if (SKIP_TEXT_TAGS.has(el.tagName) && !(el.tagName === "IFRAME" && frameDocumentOf(el))) return true;
       if (el.hasAttribute("hidden") || el.getAttribute("aria-hidden") === "true") return true;
       if (el.tagName === "DIALOG" && !el.hasAttribute("open")) return true;
       if (env && typeof env.isVisible === "function" && !env.isVisible(el)) return true;
@@ -283,6 +335,11 @@
       }
       if (el.shadowRoot) {
         walk(el.shadowRoot, hiddenHere);
+        return;
+      }
+      if (el.tagName === "IFRAME") {
+        const fd = frameDocumentOf(el);
+        if (fd) walk(fd.body, hiddenHere);
         return;
       }
       for (const child of el.childNodes) walk(child, hiddenHere);
@@ -447,7 +504,7 @@
     const out = [];
     forEachComposed(container, (el) => {
       if (out.length >= limit) return "stop";
-      if (SKIP_TEXT_TAGS.has(el.tagName)) return "skip";
+      if (SKIP_TEXT_TAGS.has(el.tagName) && el.tagName !== "IFRAME") return "skip";
       if (el !== container && isButtonLike(el)) {
         if (isVisible(el, env)) out.push(el);
         return "skip";
@@ -488,6 +545,11 @@
         }
         if (node.shadowRoot) {
           walk(node.shadowRoot);
+          return;
+        }
+        if (node.tagName === "IFRAME") {
+          const fd = frameDocumentOf(node);
+          if (fd) walk(fd.body);
           return;
         }
       }
@@ -539,6 +601,9 @@
     normalizeText,
     truncate,
     parentOrHost,
+    isInlineFrame,
+    frameDocumentOf,
+    inlineFrameDocuments,
     composedParent,
     containsDeep,
     hasLayout,
