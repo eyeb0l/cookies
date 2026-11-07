@@ -24,14 +24,14 @@
     if (DEBUG) console.debug("[cookies]", ...args);
   };
 
-  const OBSERVE_MS = 15000; // watch for late banners this long after document_idle
+  const OBSERVE_MS = 30000; // watch for late banners this long after document_idle
   const DEBOUNCE_MS = 400; // minimum gap between passes triggered by mutations
   const STABLE_MS = 600; // a container must persist this long before Layer 2 asks the model
   const VERIFY_MS = 3000; // after clicking, wait this long for the banner to go away
   const VERIFY_POLL_MS = 100;
   // Periodic passes catch banners rendered inside shadow roots, which the
   // document-level MutationObserver cannot see.
-  const TIMED_PASSES_MS = [1000, 2500, 5000, 9000, 14000];
+  const TIMED_PASSES_MS = [1000, 2500, 5000, 9000, 14000, 20000, 27000];
 
   const isTop = (() => {
     try {

@@ -176,8 +176,8 @@ Click only if **all** hold:
 
 Then dispatch a real `click()`; wait up to 3 s for the container to disappear; record the
 outcome. At most **one** model request per document per page load; a second banner is left
-alone. Observe DOM mutations for up to 15 s after `document_idle` to catch late banners,
-then stop observing.
+alone. Observe DOM mutations for up to 30 s after `document_idle` to catch late banners (CMP
+scripts on a cold load can take well over 10 s), then stop observing.
 
 ## Extension ↔ background ↔ popup messages
 
