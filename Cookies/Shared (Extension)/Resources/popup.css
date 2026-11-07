@@ -1,0 +1,217 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --separator: rgba(60, 60, 67, 0.16);
+  --accent: #2563eb;
+  --ok: #1f8a3b;
+  --warn: #a15c00;
+  --error: #c4262e;
+  --switch-off: rgba(120, 120, 128, 0.24);
+  --knob: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --surface: #2c2c2e;
+    --text: #f5f5f7;
+    --muted: #98989d;
+    --separator: rgba(84, 84, 88, 0.6);
+    --accent: #4f8cff;
+    --ok: #32d74b;
+    --warn: #ffb340;
+    --error: #ff6961;
+    --switch-off: rgba(120, 120, 128, 0.36);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.35 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  width: 320px;
+  max-width: 100vw;
+  padding: 14px 14px 12px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 2px 12px;
+}
+
+.glyph {
+  border-radius: 6px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.group {
+  background: var(--surface);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.row + .row {
+  border-top: 0.5px solid var(--separator);
+}
+
+.row[hidden] {
+  display: none;
+}
+
+.row label {
+  flex: 1;
+  cursor: default;
+}
+
+.site-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.host {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Native-style switch built on a real checkbox (keyboard and VoiceOver work as usual). */
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  position: relative;
+  width: 38px;
+  height: 22px;
+  margin: 0;
+  border-radius: 11px;
+  background: var(--switch-off);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--knob);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.switch:checked {
+  background: var(--accent);
+}
+
+.switch:checked::after {
+  transform: translateX(16px);
+}
+
+.switch:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.switch:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.status {
+  margin: 12px 2px 0;
+}
+
+.status-line {
+  margin: 0;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-line::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.status-line[data-tone="ok"]::before {
+  background: var(--ok);
+}
+
+.status-line[data-tone="warn"]::before {
+  background: var(--warn);
+}
+
+.status-line[data-tone="error"]::before {
+  background: var(--error);
+}
+
+.reason {
+  margin: 4px 0 0 13px;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.foot {
+  margin: 12px 2px 0;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--separator);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.foot p {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch::after {
+    transition: none;
+  }
+}

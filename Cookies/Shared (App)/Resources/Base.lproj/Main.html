@@ -1,20 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
     <link rel="stylesheet" href="../Style.css">
     <script src="../Script.js" defer></script>
 </head>
 <body>
-    <img src="../Icon.png" width="128" height="128" alt="Cookies Icon">
-    <p class="platform-ios">You can turn on Cookies’s Safari extension in Settings.</p>
-    <p class="platform-mac state-unknown">You can turn on Cookies’s extension in Safari Extensions preferences.</p>
-    <p class="platform-mac state-on">Cookies’s extension is currently on. You can turn it off in Safari Extensions preferences.</p>
-    <p class="platform-mac state-off">Cookies’s extension is currently off. You can turn it on in Safari Extensions preferences.</p>
-    <button class="platform-mac open-preferences">Quit and Open Safari Extensions Preferences…</button>
+    <main>
+        <header>
+            <img src="../Icon.png" width="96" height="96" alt="">
+            <h1>Cookies</h1>
+            <p class="tagline">Says “no” to cookie banners for you, entirely on this device.</p>
+        </header>
+
+        <section class="card" aria-labelledby="extension-title">
+            <h2 id="extension-title">Safari extension</h2>
+            <p class="status platform-ios">
+                <span class="dot dot-neutral" aria-hidden="true"></span>
+                <span>Turn on Cookies in Settings → Apps → Safari → Extensions, then allow it on all websites.</span>
+            </p>
+            <p class="status platform-mac state-unknown">
+                <span class="dot dot-neutral" aria-hidden="true"></span>
+                <span class="mac-text">You can turn on Cookies in Safari Extensions preferences.</span>
+            </p>
+            <p class="status platform-mac state-on">
+                <span class="dot dot-on" aria-hidden="true"></span>
+                <span class="mac-text">Cookies is on. You can turn it off in Safari Extensions preferences.</span>
+            </p>
+            <p class="status platform-mac state-off">
+                <span class="dot dot-off" aria-hidden="true"></span>
+                <span class="mac-text">Cookies is off. Turn it on in Safari Extensions preferences.</span>
+            </p>
+            <button class="platform-mac open-preferences">Quit and Open Safari Extensions Preferences…</button>
+        </section>
+
+        <section class="card" aria-labelledby="model-title">
+            <h2 id="model-title">On-device model</h2>
+            <p class="status" id="model-status">
+                <span class="dot dot-neutral" id="model-dot" aria-hidden="true"></span>
+                <span id="model-message">Checking Apple Intelligence…</span>
+            </p>
+        </section>
+
+        <section class="card" aria-labelledby="how-title">
+            <h2 id="how-title">How it works</h2>
+            <ol class="layers">
+                <li>
+                    <strong>Built-in rules.</strong>
+                    Well-known consent platforms are recognised instantly and their “Reject all” button is pressed. No model involved.
+                </li>
+                <li>
+                    <strong>On-device model.</strong>
+                    For any other banner, Apple’s on-device model is shown the banner text and its buttons and picks the one that rejects all optional cookies. Strict checks must agree before anything is clicked; when in doubt, Cookies does nothing.
+                </li>
+            </ol>
+        </section>
+
+        <section class="card" aria-labelledby="privacy-title">
+            <h2 id="privacy-title">Privacy</h2>
+            <p>Nothing leaves your device. The extension has no network access, no analytics and no accounts, and the model runs locally through Apple Intelligence.</p>
+        </section>
+    </main>
 </body>
 </html>

@@ -140,6 +140,75 @@
       ],
     }, {
       "kind": "group",
+      "path": "CookiesCore/Sources/CookiesCore",
+      "name": "CookiesCore",
+      "children": [
+        {
+          "path": "CookiesService.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+          ],
+        }, {
+          "path": "DecisionPolicy.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+          ],
+        }, {
+          "path": "DecisionSchema.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+          ],
+        }, {
+          "path": "Lexicon.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+          ],
+        }, {
+          "path": "Logging.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+          ],
+        }, {
+          "path": "ModelAvailability.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+            "Cookies (iOS)/compile-sources",
+            "Cookies (macOS)/compile-sources",
+          ],
+        }, {
+          "path": "Models.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+          ],
+        }, {
+          "path": "Prompt.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+          ],
+        }, {
+          "path": "RejectControlClassifier.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+          ],
+        }, {
+          "path": "RequestValidator.swift",
+          "target-membership": [
+            "Cookies Extension (iOS)/compile-sources",
+            "Cookies Extension (macOS)/compile-sources",
+          ],
+        },
+      ],
+    }, {
+      "kind": "group",
       "path": "iOS (App)",
       "children": [
         { "path": "AppDelegate.swift", "target-membership": [ "Cookies (iOS)/compile-sources" ] },
@@ -292,7 +361,6 @@
         "CURRENT_PROJECT_VERSION": "1",
         "ENABLE_APP_SANDBOX": "YES",
         "ENABLE_HARDENED_RUNTIME": "YES",
-        "ENABLE_OUTGOING_NETWORK_CONNECTIONS": "YES",
         "ENABLE_USER_SELECTED_FILES": "readonly",
         "GENERATE_INFOPLIST_FILE": "YES",
         "INFOPLIST_FILE": "macOS (App)/Info.plist",
@@ -339,7 +407,7 @@
         "INFOPLIST_FILE": "iOS (Extension)/Info.plist",
         "INFOPLIST_KEY_CFBundleDisplayName": "Cookies Extension",
         "INFOPLIST_KEY_NSHumanReadableCopyright": "",
-        "IPHONEOS_DEPLOYMENT_TARGET": "15.0",
+        "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
         "LD_RUNPATH_SEARCH_PATHS": [
           "$(inherited)",
           "@executable_path/Frameworks",

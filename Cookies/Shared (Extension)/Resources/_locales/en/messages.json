@@ -1,1 +1,30 @@
-{ "extension_name": { "message": "Cookies" }, "extension_description": { "message": "Automatically rejects cookie banners using on-device intelligence." } }
+{
+  "extension_name": { "message": "Cookies", "description": "Extension name." },
+  "extension_description": { "message": "Automatically rejects cookie banners using on-device intelligence.", "description": "Extension description." },
+
+  "popup_enabled": { "message": "Reject cookie banners", "description": "Label of the global on/off switch." },
+  "popup_pause_site": { "message": "Pause on this site", "description": "Label of the per-site pause switch." },
+  "popup_privacy": { "message": "Runs entirely on this device. Nothing is sent to a server.", "description": "Privacy note in the popup footer." },
+  "popup_no_site": { "message": "Not available on this page", "description": "Shown instead of the site row on pages the extension cannot run on." },
+
+  "status_rejected_rule": {
+    "message": "Rejected via $CMP$ rule",
+    "description": "A known consent platform's reject button was pressed.",
+    "placeholders": { "cmp": { "content": "$1", "example": "OneTrust" } }
+  },
+  "status_rejected_model": { "message": "Rejected via on-device model", "description": "The on-device model picked the reject button." },
+  "status_none": { "message": "No banner found", "description": "No cookie banner was found on this page." },
+  "status_off": { "message": "Turned off", "description": "The extension is disabled globally." },
+  "status_paused": { "message": "Paused on this site", "description": "The extension is paused for this site." },
+  "status_skipped_unavailable": { "message": "Skipped: model unavailable", "description": "Apple Intelligence is not available." },
+  "status_skipped_uncertain": { "message": "Skipped: not confident enough to click", "description": "The model was not sure." },
+  "status_skipped_not_consent": { "message": "Skipped: not a cookie banner", "description": "The model decided the popup was not a cookie banner." },
+  "status_skipped_none": { "message": "Skipped: no reject option found", "description": "The banner has no reject control." },
+  "status_skipped_no_reject": { "message": "Skipped: no reject option found", "description": "The banner has no reject-like control." },
+  "status_skipped_too_many": { "message": "Skipped: banner too complex", "description": "The banner has too many buttons to decide safely." },
+  "status_skipped_gate": { "message": "Skipped: failed safety check", "description": "The safety gate refused to click." },
+  "status_skipped": { "message": "Skipped", "description": "Generic skipped status." },
+  "status_error_steps": { "message": "Couldn’t finish rejecting via $CMP$", "description": "A multi-step rule did not complete.", "placeholders": { "cmp": { "content": "$1", "example": "OneTrust" } } },
+  "status_error_verify": { "message": "Clicked reject, but the banner is still showing", "description": "The banner did not disappear after clicking." },
+  "status_error": { "message": "Something went wrong", "description": "Generic error status." }
+}

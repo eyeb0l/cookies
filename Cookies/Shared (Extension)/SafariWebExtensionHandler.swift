@@ -2,41 +2,43 @@
 //  SafariWebExtensionHandler.swift
 //  Shared (Extension)
 //
-//  Created by Iris Giertuga on 06/11/2026.
+//  Native end of `browser.runtime.sendNativeMessage`. CookiesCore's sources
+//  are compiled into this target (see Cookies/CookiesCore).
 //
 
+import Foundation
 import SafariServices
-import os.log
+import os
 
-class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
+final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
+    private static let log = Logger(subsystem: "dev.eyeb0l.cookies", category: "handler")
 
+    /// Dispatches on the message's `type` and calls `completeRequest`
+    /// exactly once on every path. `CookiesService.handle` never throws and is
+    /// bounded by its own timeout, so the asynchronous path always completes.
     func beginRequest(with context: NSExtensionContext) {
-        let request = context.inputItems.first as? NSExtensionItem
+        let item = context.inputItems.first as? NSExtensionItem
+        let message = item?.userInfo?[SFExtensionMessageKey] as? [String: Any]
+        let type = message?["type"] as? String
 
-        let profile: UUID?
-        if #available(iOS 17.0, macOS 14.0, *) {
-            profile = request?.userInfo?[SFExtensionProfileKey] as? UUID
-        } else {
-            profile = request?.userInfo?["profile"] as? UUID
+        switch type {
+        case IdentifyRejectControlRequest.messageType:
+            let message = message ?? [:]
+            Task {
+                let reply = await CookiesService.shared.handle(message: message)
+                Self.complete(context, with: reply)
+            }
+        case "ping", "availability":
+            Self.complete(context, with: ModelAvailability.current().dictionary)
+        default:
+            Self.log.notice("Unsupported native message type: \(type ?? "nil", privacy: .public)")
+            Self.complete(context, with: IdentifyRejectControlResult.error("unsupported message type").dictionary)
         }
-
-        let message: Any?
-        if #available(iOS 15.0, macOS 11.0, *) {
-            message = request?.userInfo?[SFExtensionMessageKey]
-        } else {
-            message = request?.userInfo?["message"]
-        }
-
-        os_log(.default, "Received message from browser.runtime.sendNativeMessage: %@ (profile: %@)", String(describing: message), profile?.uuidString ?? "none")
-
-        let response = NSExtensionItem()
-        if #available(iOS 15.0, macOS 11.0, *) {
-            response.userInfo = [ SFExtensionMessageKey: [ "echo": message ] ]
-        } else {
-            response.userInfo = [ "message": [ "echo": message ] ]
-        }
-
-        context.completeRequest(returningItems: [ response ], completionHandler: nil)
     }
 
+    private static func complete(_ context: NSExtensionContext, with reply: [String: Any]) {
+        let response = NSExtensionItem()
+        response.userInfo = [SFExtensionMessageKey: reply]
+        context.completeRequest(returningItems: [response], completionHandler: nil)
+    }
 }

@@ -1,0 +1,13 @@
+{
+  "name": "cookies-web-extension",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Web-extension half of the Cookies Safari extension (tests only; no runtime dependencies).",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test tests/"
+  },
+  "devDependencies": {
+    "jsdom": "^26"
+  }
+}

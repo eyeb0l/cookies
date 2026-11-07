@@ -77,6 +77,10 @@ Per candidate, send: `id`, `tag`, `text` (visible text, trimmed, ≤ 80 chars), 
 (aria-label / title, ≤ 80), `attrs` (`id`, `class`, `name`, `data-*` keys only, each ≤ 60
 chars, max 6 attrs), `role`, `disabled`.
 
+Layer 2 is only attempted when at least one candidate's own label reads as a reject control
+(the native policy would refuse anything else, so asking the model would be wasted work and
+would send page text out of the page for nothing).
+
 Candidates whose text matches the **danger list** (case-insensitive, multilingual) are
 dropped before sending: buy, pay, checkout, order, purchase, subscribe, unsubscribe,
 submit, send, apply, sign in, sign up, log in, login, register, delete, remove, confirm,
@@ -89,7 +93,7 @@ transfer, withdraw, donate, "job", "offer", "application".
 {
   "type": "identifyRejectControl",
   "version": 1,
-  "page": { "host": "example.com", "lang": "en", "frame": "top" },
+  "page": { "host": "example.com", "lang": "en", "frame": "top" | "sub" },
   "container": {
     "tag": "div",
     "role": "dialog",
@@ -99,7 +103,7 @@ transfer, withdraw, donate, "job", "offer", "application".
   "candidates": [
     { "id": "c1", "tag": "button", "text": "Accept all", "aria": "", "attrs": { "class": "cb-btn primary" }, "role": "", "disabled": false },
     { "id": "c2", "tag": "button", "text": "Reject all", "aria": "", "attrs": { "class": "cb-btn" }, "role": "", "disabled": false },
-    { "id": "c3", "tag": "a",      "text": "Cookie settings", "aria": "", "attrs": { "href": "#" }, "role": "", "disabled": false }
+    { "id": "c3", "tag": "a",      "text": "Cookie settings", "aria": "", "attrs": { "class": "cb-link" }, "role": "", "disabled": false }
   ]
 }
 ```
@@ -146,6 +150,9 @@ transfer, withdraw, donate, "job", "offer", "application".
    Any failure → `status: "uncertain"` (or `"not-consent"` / `"none"`), never `"ok"`.
 6. Map `GenerationError`s to `status: "error"` with a terse reason; never throw out of
    `beginRequest`.
+7. Timeouts nest from the inside out: the native service answers within 12 s (`status: "error",
+   reason: "timeout"`), the background script gives up on the native reply after 15 s, so the
+   extension always receives an explicit non-`ok` reply rather than a dangling promise.
 
 ### Content-script safety gate (after the reply)
 
@@ -169,7 +176,8 @@ content → background : { type: "classify", request: <identifyRejectControl pay
 background → content : <identifyRejectControlResult>   (reply)
 content → background : { type: "status", status: { outcome: "rejected"|"skipped"|"none"|"error",
                          layer: "rules"|"model"|null, cmp: "onetrust"|null, reason: "..." } }
-popup → background   : { type: "getStatus" }  → { settings, tab: { host, status } }
+content → background : { type: "getSettings" } → { active, settings, hostDisabled }
+popup → background   : { type: "getStatus", tabId }  → { settings, tab: { host, status } }
 popup → background   : { type: "setSettings", settings: { enabled: Bool, disabledHosts: [String] } }
 background → native  : identifyRejectControl ;  native → background : identifyRejectControlResult
 ```
@@ -180,7 +188,8 @@ Settings live in `browser.storage.local` under `settings`.
 
 - No network permission, no `host_permissions` beyond content-script matching, no fetch.
 - Only the minimal candidate representation above is sent to the native handler, which runs
-  in Apple's app-extension sandbox and uses `FoundationModels` on device only.
+  in Apple's app-extension sandbox and uses `FoundationModels` on device only. The container app
+  and the extension are both sandboxed without the outgoing-network entitlement.
 - Nothing is logged persistently; `os_log` debug lines contain no page text in Release.
 
 ## Repository layout

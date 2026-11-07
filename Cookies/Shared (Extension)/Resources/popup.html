@@ -1,1 +1,46 @@
-<!doctype html><html><body>stub</body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Cookies</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header class="head">
+        <img class="glyph" src="images/icon-48.png" alt="" width="24" height="24" />
+        <h1 data-i18n="extension_name">Cookies</h1>
+      </header>
+
+      <section class="group" aria-labelledby="enabled-label">
+        <div class="row">
+          <label id="enabled-label" for="enabled" data-i18n="popup_enabled">Reject cookie banners</label>
+          <input id="enabled" class="switch" type="checkbox" role="switch" />
+        </div>
+        <div class="row" id="site-row" hidden>
+          <label for="paused" class="site-label">
+            <span data-i18n="popup_pause_site">Pause on this site</span>
+            <span id="host" class="host"></span>
+          </label>
+          <input id="paused" class="switch" type="checkbox" role="switch" aria-describedby="host" />
+        </div>
+        <div class="row muted" id="no-site-row" hidden>
+          <span data-i18n="popup_no_site">Not available on this page</span>
+        </div>
+      </section>
+
+      <section class="status" aria-live="polite">
+        <p id="status" class="status-line"></p>
+        <p id="reason" class="reason" hidden></p>
+      </section>
+
+      <footer class="foot">
+        <p data-i18n="popup_privacy">Runs entirely on this device. Nothing is sent to a server.</p>
+      </footer>
+    </main>
+    <script src="lib/rules.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
