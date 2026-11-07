@@ -197,11 +197,77 @@ describe("GOV.UK (in-flow banner)", () => {
     assert.equal(detect.findBestContainer(doc, { env }), null);
   });
 
-  test("Layer 2: in-flow banner nested below top level is not a container", () => {
+  test("Layer 2: a nested in-flow banner qualifies only when it is named as a cookie/consent element", () => {
     const doc = load("cmp-govuk.html");
     const wrapper = doc.createElement("div");
     doc.body.prepend(wrapper);
-    wrapper.append(doc.getElementById("global-cookie-message"));
-    assert.equal(detect.evaluateContainer(doc.getElementById("global-cookie-message"), { env: govEnv(0) }).reason, "low-stacking");
+    const banner = doc.getElementById("global-cookie-message");
+    wrapper.append(banner);
+    assert.equal(detect.evaluateContainer(banner, { env: govEnv(0) }).eligible, true, "named banner may be nested");
+    // Same element with only role="region" left as a hint: fail closed.
+    for (const attr of ["id", "class", "aria-label", "data-module"]) banner.removeAttribute(attr);
+    assert.equal(detect.evaluateContainer(banner, { env: govEnv(0) }).reason, "low-stacking");
+  });
+});
+
+describe("Nested in-flow banners (NHS, Twitch)", () => {
+  // jsdom has no layout: give the banner a rect at the top of a 1280×800 viewport.
+  const envFor = (doc, selector, height) => {
+    const banner = doc.querySelector(selector);
+    return {
+      viewport: { width: 1280, height: 800, scrollY: 0 },
+      rect: (el) => (el === banner || banner.contains(el) ? R(0, el === banner ? height : 32) : R(600, 200)),
+      isVisible: (el) => el.isConnected && dom.isVisible(el),
+    };
+  };
+
+  test("NHS: Layer 1 clicks 'Reject analytics cookies' despite its id ending in link_accept", () => {
+    const doc = load("cmp-nhs.html", { url: "https://www.nhs.uk/" });
+    const action = cmp.findAction(doc);
+    assert.ok(action && action.kind === "reject", "expected a direct reject");
+    assert.equal(action.rule.id, "nhsuk");
+    assert.equal(action.element.id, "nhsuk-cookie-banner__link_accept");
+    assert.equal(action.element.textContent.trim(), "Reject analytics cookies");
+  });
+
+  test("NHS: Layer 2 (rules off) finds the nested in-flow banner and both buttons", () => {
+    const doc = load("cmp-nhs.html", { url: "https://www.nhs.uk/" });
+    const env = envFor(doc, "#nhsuk-cookie-banner", 329);
+    const best = detect.findBestContainer(doc, { env });
+    assert.ok(best, "no container");
+    // The outermost cookie-named block wins over the nested #cookiebanner.
+    assert.equal(best.element.id, "nhsuk-cookie-banner");
+    assert.equal(best.kind, "inflow");
+    const built = candidates.buildRequest(best.element, { env, host: "www.nhs.uk" });
+    assert.ok(built.request, built.reason);
+    assert.deepEqual(built.request.candidates.map((c) => c.text), ["Accept analytics cookies", "Reject analytics cookies"]);
+  });
+
+  test("Twitch: Layer 1 clicks Reject, never Accept or Customize", () => {
+    const doc = load("cmp-twitch.html", { url: "https://www.twitch.tv/" });
+    const action = cmp.findAction(doc);
+    assert.ok(action && action.kind === "reject", "expected a direct reject");
+    assert.equal(action.rule.id, "twitch");
+    assert.equal(action.element.id, "tw-reject");
+  });
+
+  test("Twitch: Layer 2 (rules off) accepts the banner six wrappers below body", () => {
+    const doc = load("cmp-twitch.html", { url: "https://www.twitch.tv/" });
+    const env = envFor(doc, ".consent-banner", 213);
+    const best = detect.findBestContainer(doc, { env });
+    assert.ok(best, "no container");
+    assert.ok(best.element.classList.contains("consent-banner"));
+    const built = candidates.buildRequest(best.element, { env, host: "www.twitch.tv" });
+    assert.ok(built.request, built.reason);
+    assert.deepEqual(built.request.candidates.map((c) => c.text), ["Accept", "Customize", "Reject"]);
+    // The login/sign-up nav outside the banner is never part of the request.
+    assert.ok(!built.request.candidates.some((c) => /log in|sign up/i.test(c.text)));
+  });
+
+  test("Twitch: the same banner mid-page is not a container", () => {
+    const doc = load("cmp-twitch.html", { url: "https://www.twitch.tv/" });
+    const banner = doc.querySelector(".consent-banner");
+    const env = { viewport: { width: 1280, height: 800, scrollY: 0 }, rect: (el) => (el === banner ? R(300, 213) : R(300, 32)), isVisible: (el) => el.isConnected && dom.isVisible(el) };
+    assert.equal(detect.evaluateContainer(banner, { env }).reason, "not-positioned");
   });
 });

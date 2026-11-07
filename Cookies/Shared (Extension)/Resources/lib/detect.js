@@ -127,11 +127,15 @@
     return { width: (win && win.innerWidth) || 0, height: (win && win.innerHeight) || 0, scrollY: (win && win.scrollY) || 0 };
   }
 
-  function hasInflowHint(el) {
-    const role = (el.getAttribute("role") || "").toLowerCase();
-    if (INFLOW_ROLES.has(role)) return true;
+  /** The element is *named* as a cookie/consent thing (id, class, label or module). */
+  function hasInflowNameHint(el) {
     const cls = typeof el.className === "string" ? el.className : el.getAttribute("class") || "";
     return INFLOW_HINT_RE.test(`${el.getAttribute("aria-label") || ""} ${el.id || ""} ${cls} ${el.getAttribute("data-module") || ""}`);
+  }
+
+  function hasInflowHint(el) {
+    const role = (el.getAttribute("role") || "").toLowerCase();
+    return INFLOW_ROLES.has(role) || hasInflowNameHint(el);
   }
 
   /**
@@ -169,10 +173,12 @@
   /**
    * Overlays: `position: fixed` always paints above in-flow content; sticky and
    * dialogs need z-index ≥ 10 (on itself or an ancestor), a top-level position,
-   * or an open modal <dialog>. In-flow banners must be top-level.
+   * or an open modal <dialog>. In-flow banners must be top-level unless they
+   * are explicitly named as a cookie/consent element (NHS and Twitch nest
+   * theirs several wrappers deep); a role alone is not enough when nested.
    */
   function hasHighStacking(el, kind = "positioned") {
-    if (kind === "inflow") return isTopLevelChild(el) || isShadowTopLevel(el);
+    if (kind === "inflow") return isTopLevelChild(el) || isShadowTopLevel(el) || hasInflowNameHint(el);
     if (el.tagName === "DIALOG" && el.hasAttribute("open")) return true;
     const own = dom.styleOf(el);
     if (own && own.position === "fixed") return true;
@@ -279,21 +285,23 @@
   }
 
   /**
-   * Nearest banner-like ancestor (inclusive) in the composed tree. In-flow
-   * candidates that aren't top-level are skipped (they can never qualify) so
-   * the climb continues to the outer banner.
+   * Banner-like ancestor (inclusive) in the composed tree: the nearest overlay
+   * (fixed/sticky/dialog), or else the *outermost* qualifying in-flow block —
+   * in-flow banners nest cookie-named wrappers (GOV.UK's message, Twitch's
+   * content) and the outer one is the banner.
    */
   function positionedAncestor(el, env, maxDepth = 15) {
     const doc = el.ownerDocument;
+    let inflow = null;
     let depth = 0;
     for (let n = el; n && depth < maxDepth; n = dom.composedParent(n), depth++) {
       if (n.nodeType !== 1) continue;
-      if (n === doc.body || n === doc.documentElement) return null;
+      if (n === doc.body || n === doc.documentElement) break;
       const kind = bannerKind(n, env);
       if (kind === "positioned") return n;
-      if (kind === "inflow" && hasHighStacking(n, kind)) return n;
+      if (kind === "inflow" && hasHighStacking(n, kind)) inflow = n;
     }
-    return null;
+    return inflow;
   }
 
   /** Gather elements worth evaluating, cheapest sources first. */

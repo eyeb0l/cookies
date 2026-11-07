@@ -377,6 +377,24 @@
       frames: "top",
     },
     {
+      id: "nhsuk",
+      name: "NHS cookie banner",
+      // nhsuk-frontend banner (NHS website and services). The reject button's
+      // id ends in "link_accept", so match on the label rather than the id.
+      detect: ["#nhsuk-cookie-banner", "#cookiebanner.nhsuk-cookie-banner"],
+      banner: ["#cookiebanner.nhsuk-cookie-banner", "#nhsuk-cookie-banner .nhsuk-cookie-banner"],
+      reject: [{ selector: "#nhsuk-cookie-banner button, #cookiebanner.nhsuk-cookie-banner button", text: R }],
+      frames: "top",
+    },
+    {
+      id: "twitch",
+      name: "Twitch",
+      detect: ['[data-a-target="consent-banner"]', '[data-a-target="consent-banner-accept"]'],
+      banner: [".consent-banner", '[data-a-target="consent-banner"]'],
+      reject: [{ selector: '.consent-banner button, [data-a-target="consent-banner"] button', text: R }],
+      frames: "top",
+    },
+    {
       id: "reddit",
       name: "Reddit",
       // The dialog and its buttons are light DOM slotted into shadow chrome.

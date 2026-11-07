@@ -56,6 +56,9 @@ first disabling toggles, or anything unrelated to consent.
 A candidate container must satisfy all of:
 
 - positioned `fixed` or `sticky`, or `role="dialog"`/`alertdialog`, or `aria-modal`, or a `<dialog>`;
+  or an in-flow block that is named as a cookie/consent element (id, class, aria-label, data-module)
+  or carries a landmark role, sits within 150 px of the page top or the viewport bottom, and is no
+  taller than 60 % of the viewport (role-only in-flow blocks must be direct children of `body`);
 - visible, non-trivial size, high stacking (z-index ≥ 10 or a direct child of body/html);
 - its visible text (max 2 000 chars considered) contains at least one cookie/consent keyword
   (multilingual list: cookie, cookies, consent, consentement, einwilligung, privacy, privacidad,
