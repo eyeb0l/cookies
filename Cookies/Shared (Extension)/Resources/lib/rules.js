@@ -125,8 +125,16 @@
       id: "sourcepoint",
       name: "Sourcepoint",
       // Runs inside the Sourcepoint message iframe (content scripts run in all frames).
-      detect: ['[class*="sp_choice_type_"]'],
-      reject: [".sp_choice_type_13", ".sp_choice_type_REJECT_ALL", { selector: 'button[title="Reject All"]', text: R }, { selector: 'button[title="Reject all"]', text: R }],
+      detect: ['[class*="sp_choice_type_"]', ".message-container .message-button"],
+      reject: [
+        ".sp_choice_type_13",
+        ".sp_choice_type_REJECT_ALL",
+        { selector: 'button[title="Reject All"]', text: R },
+        { selector: 'button[title="Reject all"]', text: R },
+        // Publisher-worded messages (Sky: "Essential cookies only") use other
+        // choice types; fall back to any message button whose label rejects.
+        { selector: 'button.message-button, .message-component.message-button, [class*="sp_choice_type_"]', text: R },
+      ],
       frames: "any",
     },
     {

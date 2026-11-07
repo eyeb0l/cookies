@@ -174,7 +174,8 @@
     // Tiny frames (ads, widgets) don't host consent banners we should touch.
     if (!isTop && (window.innerWidth < 200 || window.innerHeight < 80)) return;
 
-    const best = detect.findBestContainer(document);
+    // In an iframe the whole document may be the banner (Sourcepoint & co).
+    const best = detect.findBestContainer(document, { frameBody: !isTop });
     if (!best || state.seenContainers.has(best.element)) {
       state.candidate = null;
       return;

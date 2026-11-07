@@ -86,6 +86,21 @@ describe("rules engine", () => {
     assert.ok(a.element.classList.contains("sp_choice_type_13"));
   });
 
+  test("Sourcepoint publisher wording: 'Essential cookies only' without choice type 13 (Sky)", () => {
+    const doc = load("cmp-sourcepoint-frame.html");
+    const reject = doc.querySelector(".sp_choice_type_13");
+    reject.className = "message-component message-button no-children sp_choice_type_9";
+    reject.title = "Essential cookies only";
+    reject.textContent = "Essential cookies only";
+    doc.querySelector(".sp_choice_type_12").textContent = "View options";
+    const a = cmp.findAction(doc, { isTop: false });
+    assert.equal(a.kind, "reject");
+    assert.equal(a.element, reject);
+    // With no reject-reading button at all, nothing is clicked.
+    reject.remove();
+    assert.equal(cmp.findAction(doc, { isTop: false }).kind, "detected");
+  });
+
   test("CookieYes", () => {
     const a = expectReject("cmp-cookieyes.html", "cookieyes");
     assert.equal(a.element.textContent, "Reject All");

@@ -243,13 +243,17 @@
     const fail = (reason) => ({ eligible: false, score: 0, reason });
     if (!el || el.nodeType !== 1) return fail("not-element");
     const doc = el.ownerDocument;
-    if (el === doc.body || el === doc.documentElement) return fail("root");
-    const kind = bannerKind(el, env);
+    // In a sub-frame the whole document may be the banner (CMPs such as
+    // Sourcepoint render their message in a cross-origin iframe whose body is
+    // nothing but the notice). Only content.js running in an iframe opts in.
+    const frameBody = options.frameBody === true && el === doc.body;
+    if (!frameBody && (el === doc.body || el === doc.documentElement)) return fail("root");
+    const kind = frameBody ? "frame" : bannerKind(el, env);
     if (!kind) return fail("not-positioned");
     if (!dom.isVisible(el, env)) return fail("hidden");
     const rect = dom.rectOf(el, env);
     if (rect && (rect.width < MIN_WIDTH || rect.height < MIN_HEIGHT)) return fail("too-small");
-    if (!hasHighStacking(el, kind)) return fail("low-stacking");
+    if (kind !== "frame" && !hasHighStacking(el, kind)) return fail("low-stacking");
 
     const text = dom.visibleText(el, { max: TEXT_MAX, env });
     // Text the size of a whole page/app shell is not a notice.
@@ -257,8 +261,8 @@
     const strong = keywordHits(text, STRONG_RE);
     const weak = keywordHits(text, WEAK_RE);
     if (!strong.size && !weak.size) return fail("no-keyword");
-    // A static region that only mentions "privacy" must not qualify.
-    if (kind === "inflow" && !strong.size) return fail("no-strong-keyword");
+    // A static region (or a whole frame) that only mentions "privacy" must not qualify.
+    if ((kind === "inflow" || kind === "frame") && !strong.size) return fail("no-strong-keyword");
 
     const excluded = exclusionReason(el);
     if (excluded) return fail(excluded);
@@ -365,6 +369,8 @@
     let results = evaluate(candidatePool(doc, { scan: false, env: options.env }));
     // Only pay for the full position scan when the cheap sources found nothing.
     if (!results.length && options.scan !== false) results = evaluate(candidatePool(doc, { scan: true, env: options.env }));
+    // Last resort inside an iframe: the frame's own body.
+    if (!results.length && options.frameBody === true && doc.body) results = evaluate([doc.body]);
     // Prefer higher scores; on ties prefer the innermost (most specific) element.
     results.sort((a, b) => b.score - a.score || (dom.containsDeep(a.element, b.element) ? 1 : dom.containsDeep(b.element, a.element) ? -1 : 0));
     return results;

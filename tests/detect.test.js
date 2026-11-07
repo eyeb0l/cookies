@@ -212,3 +212,32 @@ describe("transparent controls over a visible label", () => {
     assert.equal(dom.isVisible(ctl, inside), true);
   });
 });
+
+describe("sub-frame whose whole document is the banner", () => {
+  const candidates = lib("candidates.js");
+
+  test("body qualifies only when content.js opts in (iframe) and the text has strong consent vocabulary", () => {
+    const doc = load("cmp-sourcepoint-frame.html");
+    assert.equal(detect.findBestContainer(doc), null, "top-level documents never use body");
+    const best = detect.findBestContainer(doc, { frameBody: true });
+    assert.ok(best, "frame body should be the container");
+    assert.equal(best.element, doc.body);
+    assert.equal(best.kind, "frame");
+    const built = candidates.buildRequest(doc.body, { frame: "sub", host: "cdn.privacy-mgmt.com" });
+    assert.deepEqual(built.request.candidates.map((c) => c.text), ["Settings", "Reject All", "Accept All"]);
+  });
+
+  test("frame body with only weak vocabulary, or with a login form, is refused", () => {
+    const weak = load(`<!doctype html><body><p>Read our privacy policy.</p><button>Reject</button></body>`);
+    assert.equal(detect.evaluateContainer(weak.body, { frameBody: true }).reason, "no-strong-keyword");
+    const login = load(`<!doctype html><body><p>Cookies help us sign you in.</p><form method="post"><input type="text" name="u"><input type="password" name="p"><button>Reject</button></form></body>`);
+    assert.equal(detect.evaluateContainer(login.body, { frameBody: true }).reason, "password-field");
+  });
+
+  test("a positioned banner inside the frame still wins over the body", () => {
+    const doc = load("banner-fixed.html");
+    const best = detect.findBestContainer(doc, { frameBody: true });
+    assert.ok(best);
+    assert.notEqual(best.element, doc.body);
+  });
+});
