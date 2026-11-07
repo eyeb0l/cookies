@@ -188,8 +188,10 @@ Settings live in `browser.storage.local` under `settings`.
 
 - No network permission, no `host_permissions` beyond content-script matching, no fetch.
 - Only the minimal candidate representation above is sent to the native handler, which runs
-  in Apple's app-extension sandbox and uses `FoundationModels` on device only. The container app
-  and the extension are both sandboxed without the outgoing-network entitlement.
+  in Apple's app-extension sandbox and uses `FoundationModels` on device only. The extension is sandboxed
+  without the outgoing-network entitlement. The container app keeps that entitlement only because
+  a sandboxed WKWebView cannot render even its bundled local page without it; the app makes no
+  requests.
 - Nothing is logged persistently; `os_log` debug lines contain no page text in Release.
 
 ## Repository layout
