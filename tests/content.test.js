@@ -69,6 +69,68 @@ describe("content script", () => {
     assert.equal(messages.filter((m) => m.type === "classify").length, 0, "no model request when a rule matched");
   });
 
+  test("the rejected status is sent before the click, so a click that navigates cannot lose it", async () => {
+    const { document, messages } = run(fixture("cmp-onetrust.html"));
+    let reportedBeforeClick = null;
+    document.addEventListener("click", (e) => {
+      if (e.target.id === "onetrust-reject-all-handler") {
+        reportedBeforeClick = statuses(messages).some((x) => x.outcome === "rejected");
+        document.getElementById("onetrust-banner-sdk").remove();
+      }
+    });
+    await until(() => reportedBeforeClick !== null);
+    assert.equal(reportedBeforeClick, true);
+  });
+
+  test("steps flow: the rejected status precedes the final click, not the intermediate one", async () => {
+    const { document, messages } = run(fixture("cmp-onetrust-steps.html"));
+    const seen = {};
+    document.addEventListener("click", (e) => {
+      seen[e.target.id] = statuses(messages).some((x) => x.outcome === "rejected");
+      if (e.target.id === "onetrust-pc-btn-handler") document.getElementById("onetrust-pc-sdk").style.display = "block";
+      if (e.target.classList.contains("ot-pc-refuse-all-handler")) document.getElementById("onetrust-consent-sdk").remove();
+    });
+    await until(() => Object.keys(seen).length >= 2);
+    assert.equal(seen["onetrust-pc-btn-handler"], false, "no rejected report before opening the preference centre");
+    assert.equal(Object.values(seen).at(-1), true, "rejected reported before the final click");
+  });
+
+  test("in an iframe, a control that stops intersecting the viewport after the click counts as gone", async () => {
+    // The real bundle runs inside a jsdom iframe, so window.top !== window.
+    const { document } = run("<!doctype html><body><iframe id=\"f\"></iframe></body>");
+    const fw = document.getElementById("f").contentWindow;
+    const fd = fw.document;
+    fd.body.innerHTML = fixture("cmp-sourcepoint-frame.html").replace(/^[\s\S]*<body>|<\/body>[\s\S]*$/g, "");
+    const messages = [];
+    fw.browser = {
+      runtime: {
+        sendMessage: async (msg) => {
+          messages.push(msg);
+          if (msg.type === "getSettings") return { active: true, hostDisabled: false, settings: { enabled: true, disabledHosts: [] } };
+          return { ok: true };
+        },
+      },
+    };
+    let hidden = false;
+    fw.IntersectionObserver = class {
+      constructor(cb) {
+        this.cb = cb;
+      }
+      observe() {
+        setTimeout(() => this.cb([{ isIntersecting: !hidden }]), 0);
+      }
+      disconnect() {}
+    };
+    fd.addEventListener("click", (e) => {
+      // Sourcepoint leaves the message DOM alone; the parent hides the frame.
+      if (e.target.classList.contains("sp_choice_type_13")) hidden = true;
+    });
+    for (const code of bundle) fw.eval(code);
+    assert.ok(await until(() => statuses(messages).some((x) => x.outcome === "rejected")), "rule should click inside the frame");
+    await new Promise((r) => setTimeout(r, 3500));
+    assert.ok(!statuses(messages).some((x) => x.code === "not-verified"), "hidden frame must not be reported as not-verified");
+  });
+
   test("disabled: does nothing", async () => {
     const { document, messages } = run(fixture("cmp-onetrust.html"), { settings: { active: false, hostDisabled: true } });
     const clicked = [];

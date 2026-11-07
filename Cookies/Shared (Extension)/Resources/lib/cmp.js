@@ -139,8 +139,9 @@
   }
 
   /**
-   * Run a rule's multi-step flow. `beforeClick` (async, optional) is called
-   * before every click and may veto it (e.g. the user just disabled us).
+   * Run a rule's multi-step flow. `beforeClick(el, { final })` (async,
+   * optional) is called before every click and may veto it (e.g. the user
+   * just disabled us); `final` marks the click that is the actual reject.
    *
    * @returns {Promise<{ ok: boolean, element?: Element, reason?: string }>}
    */
@@ -159,7 +160,7 @@
           if (step.optional) continue;
           return { ok: false, reason: `step ${i + 1} target not found`, element: finalElement };
         }
-        if (options.beforeClick && !(await options.beforeClick(el))) return { ok: false, reason: "vetoed", element: finalElement };
+        if (options.beforeClick && !(await options.beforeClick(el, { final: i === finalIdx }))) return { ok: false, reason: "vetoed", element: finalElement };
         el.click();
         if (i === finalIdx) finalElement = el;
       }

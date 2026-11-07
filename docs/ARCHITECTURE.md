@@ -174,8 +174,11 @@ Click only if **all** hold:
 - the content script has not clicked anything else on this document in this page load;
 - the user has not disabled the extension globally or for this host.
 
-Then dispatch a real `click()`; wait up to 3 s for the container to disappear; record the
-outcome. At most **one** model request per document per page load; a second banner is left
+Then report the outcome and dispatch a real `click()` (the report goes first because some sites
+navigate or tear the frame down on the click itself); wait up to 3 s for the container to
+disappear and record `not-verified` if it does not. Inside an iframe, a collapsed viewport or a
+control that no longer intersects the top-level viewport counts as disappeared, since the parent
+hides the whole frame and this document cannot see that directly. At most **one** model request per document per page load; a second banner is left
 alone. Observe DOM mutations for up to 30 s after `document_idle` to catch late banners (CMP
 scripts on a cold load can take well over 10 s), then stop observing.
 

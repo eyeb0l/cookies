@@ -100,6 +100,35 @@
     stopObserving();
   }
 
+  /**
+   * Inside an iframe the parent usually hides the whole frame once consent is
+   * saved (Sourcepoint), which this document cannot observe directly: a
+   * collapsed viewport or a control that no longer intersects the top-level
+   * viewport is the signal.
+   */
+  const frameCollapsed = () => !isTop && (window.innerWidth === 0 || window.innerHeight === 0);
+
+  function intersectsViewport(el) {
+    if (typeof IntersectionObserver !== "function") return Promise.resolve(true);
+    return new Promise((resolve) => {
+      let io = null;
+      let done = false;
+      const finish = (value) => {
+        if (done) return;
+        done = true;
+        if (io) io.disconnect();
+        resolve(value);
+      };
+      try {
+        io = new IntersectionObserver((entries) => finish(entries.some((e) => e.isIntersecting)));
+        io.observe(el);
+      } catch {
+        finish(true);
+      }
+      setTimeout(() => finish(true), 200);
+    });
+  }
+
   /** Resolve true once the clicked control or its banner is gone/hidden. */
   async function verifyGone(element, banner) {
     const gone = (el) => !el || !el.isConnected || !dom.isVisible(el);
@@ -107,6 +136,8 @@
     while (Date.now() < deadline) {
       await sleep(VERIFY_POLL_MS);
       if (gone(element) || (banner && banner !== element && gone(banner))) return true;
+      if (frameCollapsed()) return true;
+      if (!isTop && !(await intersectsViewport(element))) return true;
     }
     return false;
   }
@@ -126,19 +157,29 @@
         return true;
       }
       if (state.clicked) return true;
+      // Reported just before the click: some sites navigate or tear down
+      // this frame on the click itself, and a message sent afterwards is lost.
+      const rejected = () => report({ outcome: "rejected", layer: "rules", cmp: rule.id, reason: rule.name });
       let element;
       if (action.kind === "reject") {
         element = action.element;
         // Re-validate after the async settings round trip.
         if (!element.isConnected || !dom.isVisible(element) || dom.isDisabled(element)) return false;
         state.clicked = true;
+        rejected();
         element.click();
       } else {
         state.attempted.add(rule.id);
         // Starting a flow counts as this document's click: nothing else
         // (including Layer 2) may click afterwards, even if a step fails.
         state.clicked = true;
-        const result = await cmp.runSteps(document, rule, { beforeClick: () => stillActive() });
+        const result = await cmp.runSteps(document, rule, {
+          beforeClick: async (el, info) => {
+            const ok = await stillActive();
+            if (ok && info && info.final) rejected();
+            return ok;
+          },
+        });
         if (!result.ok) {
           report({ outcome: "error", layer: "rules", cmp: rule.id, reason: rule.name, code: "steps-failed" });
           finish();
@@ -147,8 +188,6 @@
         element = result.element;
       }
       log("rule clicked", rule.id);
-      // Report immediately: if the CMP removes our iframe we never get to verify.
-      report({ outcome: "rejected", layer: "rules", cmp: rule.id, reason: rule.name });
       const gone = await verifyGone(element, cmp.bannerElementFor(rule, element));
       if (!gone) report({ outcome: "error", layer: "rules", cmp: rule.id, reason: rule.name, code: "not-verified" });
       finish();
@@ -229,8 +268,8 @@
         return;
       }
       state.clicked = true;
-      verdict.element.click();
       report({ outcome: "rejected", layer: "model", reason: result.reason || "" });
+      verdict.element.click();
       const gone = await verifyGone(verdict.element, container);
       if (!gone) report({ outcome: "error", layer: "model", reason: result.reason || "", code: "not-verified" });
       finish();
