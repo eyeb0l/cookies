@@ -5,6 +5,8 @@ const { lib, load, recordClicks } = require("./helpers.js");
 
 const { rules } = lib("rules.js");
 const cmp = lib("cmp.js");
+const detect = lib("detect.js");
+const candidates = lib("candidates.js");
 
 const fast = { timeout: 300, poll: 10 };
 
@@ -234,5 +236,35 @@ describe("rules engine", () => {
     const doc = load("cmp-onetrust.html");
     const action = cmp.findAction(doc);
     assert.equal(cmp.bannerElementFor(action.rule, action.element).id, "onetrust-banner-sdk");
+  });
+});
+
+describe("Amazon (transparent submit inputs over styled labels)", () => {
+  const fixtureDoc = () => load("cmp-amazon.html", { url: "https://www.amazon.co.uk/" });
+
+  test("Layer 1: amazon rule picks Decline, never Accept", () => {
+    const doc = fixtureDoc();
+    const action = cmp.findAction(doc);
+    assert.ok(action && action.kind === "reject", "expected a direct reject");
+    assert.equal(action.rule.id, "amazon");
+    assert.equal(action.element.id, "sp-cc-rejectall-link");
+  });
+
+  test("Layer 1: not in iframes", () => {
+    assert.equal(cmp.findAction(fixtureDoc(), { isTop: false }), null);
+  });
+
+  test("Layer 2 (rules off): the dialog is the container and both inputs are candidates", () => {
+    const doc = fixtureDoc();
+    const best = detect.findBestContainer(doc);
+    assert.ok(best, "no container");
+    assert.equal(best.element.id, "cos-banner");
+    const built = candidates.buildRequest(best.element, { host: "www.amazon.co.uk" });
+    assert.ok(built.request, built.reason);
+    assert.deepEqual(
+      built.request.candidates.map((c) => c.text),
+      ["Accept", "Decline"],
+    );
+    assert.equal(built.request.candidates.find((c) => c.text === "Decline").aria, "Decline");
   });
 });

@@ -367,6 +367,16 @@
       frames: "top",
     },
     {
+      id: "amazon",
+      name: "Amazon",
+      // Same markup on every Amazon storefront: a fixed <form role="dialog">
+      // whose Accept/Decline are transparent submit inputs over styled labels.
+      detect: ["#sp-cc", "#cos-banner", "#sp-cc-wrapper"],
+      banner: ["#cos-banner", "#sp-cc"],
+      reject: ["#sp-cc-rejectall-link", "#sp-cc-rejectall-container input", { selector: '#cos-banner input[type="submit"], #sp-cc input[type="submit"]', text: R }],
+      frames: "top",
+    },
+    {
       id: "reddit",
       name: "Reddit",
       // The dialog and its buttons are light DOM slotted into shadow chrome.

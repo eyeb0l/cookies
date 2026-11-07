@@ -164,3 +164,51 @@ describe("dom helpers", () => {
     assert.deepEqual(dom.querySelectorAllDeep(doc, "button").map((b) => b.id), ["first", "middle", "last"]);
   });
 });
+
+describe("transparent controls over a visible label", () => {
+  const html = (inputValue, shown, { opacity = "0.01", tag = "input" } = {}) => `<!doctype html><body>
+    <span id="wrap" style="position:relative">
+      ${tag === "input" ? `<input id="ctl" type="submit" value="${inputValue}" style="position:absolute;opacity:${opacity}">` : `<button id="ctl" style="position:absolute;opacity:${opacity}">${inputValue}</button>`}
+      <span aria-hidden="true"> ${shown} </span>
+    </span></body>`;
+
+  test("input at opacity .01 over a span showing the same label is visible", () => {
+    const doc = load(html("Decline", "Decline"));
+    assert.equal(dom.isVisible(doc.getElementById("ctl")), true);
+    assert.equal(dom.visibleText(doc.getElementById("wrap")), "Decline");
+  });
+
+  test("a button works the same way", () => {
+    const doc = load(html("Decline", "Decline", { tag: "button" }));
+    assert.equal(dom.isVisible(doc.getElementById("ctl")), true);
+  });
+
+  test("label mismatch keeps the control hidden", () => {
+    const doc = load(html("Decline", "Accept"));
+    assert.equal(dom.isVisible(doc.getElementById("ctl")), false);
+  });
+
+  test("no sibling label keeps the control hidden", () => {
+    const doc = load(html("Decline", ""));
+    assert.equal(dom.isVisible(doc.getElementById("ctl")), false);
+  });
+
+  test("opacity 0 with a label is still hidden on the parent, and a hidden parent hides the control", () => {
+    const doc = load(`<!doctype html><body><span id="wrap" style="opacity:0"><input id="ctl" type="submit" value="Decline" style="opacity:0.01"><span aria-hidden="true">Decline</span></span></body>`);
+    assert.equal(dom.isVisible(doc.getElementById("ctl")), false);
+  });
+
+  test("a transparent ancestor still hides an ordinary control", () => {
+    const doc = load(`<!doctype html><body><div style="opacity:0.01"><button id="ctl">Decline</button></div></body>`);
+    assert.equal(dom.isVisible(doc.getElementById("ctl")), false);
+  });
+
+  test("geometry: the control must sit inside its parent", () => {
+    const doc = load(html("Decline", "Decline"));
+    const ctl = doc.getElementById("ctl");
+    const far = { rect: (el) => (el === ctl ? { left: 900, top: 900, right: 950, bottom: 930, width: 50, height: 30 } : { left: 0, top: 0, right: 100, bottom: 40, width: 100, height: 40 }) };
+    assert.equal(dom.isVisible(ctl, far), false);
+    const inside = { rect: (el) => (el === ctl ? { left: 0, top: 0, right: 100, bottom: 40, width: 100, height: 40 } : { left: 0, top: 0, right: 100, bottom: 40, width: 100, height: 40 }) };
+    assert.equal(dom.isVisible(ctl, inside), true);
+  });
+});

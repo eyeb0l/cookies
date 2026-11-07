@@ -164,7 +164,9 @@
       if (cs.display === "none") return false;
       if (n === el && (cs.visibility === "hidden" || cs.visibility === "collapse")) return false;
       const opacity = parseFloat(cs.opacity);
-      if (!Number.isNaN(opacity) && opacity <= 0.01) return false;
+      // A transparent ancestor hides everything; the element itself may be a
+      // transparent control laid over its own visible label.
+      if (!Number.isNaN(opacity) && opacity <= 0.01 && (n !== el || !isLabelledOverlayControl(el, env))) return false;
     }
     const rect = rectOf(el, env);
     if (rect) {
@@ -175,6 +177,42 @@
       }
     }
     return true;
+  }
+
+  /**
+   * A native control made transparent and laid over a sibling that shows the
+   * same label (Amazon's AUI buttons: `<input type=submit value="Decline"
+   * style="opacity:.01">` next to `<span aria-hidden>Decline</span>`). The
+   * user sees that label as the button, so the control is perceivable. The
+   * parent must itself be visible and, when geometry is available, the
+   * control must sit inside it.
+   */
+  function isLabelledOverlayControl(el, env) {
+    const tag = el.tagName;
+    if (tag !== "INPUT" && tag !== "BUTTON") return false;
+    if (tag === "INPUT") {
+      const type = (el.getAttribute("type") || "").toLowerCase();
+      if (type !== "submit" && type !== "button") return false;
+    }
+    const parent = el.parentElement;
+    if (!parent) return false;
+    const label = normalizeText(tag === "INPUT" ? el.value : el.textContent).toLowerCase();
+    if (!label) return false;
+    let shown = "";
+    for (const child of parent.childNodes) {
+      if (child === el) continue;
+      if (child.nodeType === TEXT_NODE) shown += ` ${child.nodeValue}`;
+      else if (child.nodeType === ELEMENT_NODE && !SKIP_TEXT_TAGS.has(child.tagName)) shown += ` ${child.textContent}`;
+    }
+    if (normalizeText(shown).toLowerCase() !== label) return false;
+    const own = rectOf(el, env);
+    const outer = rectOf(parent, env);
+    if (own && outer) {
+      const cx = own.left + own.width / 2;
+      const cy = own.top + own.height / 2;
+      if (cx < outer.left || cx > outer.right || cy < outer.top || cy > outer.bottom) return false;
+    }
+    return isVisible(parent, env);
   }
 
   /**
@@ -223,7 +261,7 @@
       if (cs) {
         if (cs.display === "none") return;
         const opacity = parseFloat(cs.opacity);
-        if (!Number.isNaN(opacity) && opacity <= 0.01) return;
+        if (!Number.isNaN(opacity) && opacity <= 0.01 && !isLabelledOverlayControl(el, env)) return;
         // visibility is inherited but can be re-enabled by a descendant.
         hiddenHere = cs.visibility === "hidden" || cs.visibility === "collapse";
         if (withLayout && (cs.position === "absolute" || cs.position === "fixed")) {
@@ -507,6 +545,7 @@
     rectOf,
     styleOf,
     isVisible,
+    isLabelledOverlayControl,
     visibleText,
     labelOf,
     querySelectorAllDeep,

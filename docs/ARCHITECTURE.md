@@ -159,7 +159,9 @@ transfer, withdraw, donate, "job", "offer", "application".
 Click only if **all** hold:
 
 - `status == "ok"` and `candidateId` is in this request's `Map`;
-- the element is still connected, visible, enabled, and still inside the same container;
+- the element is still connected, visible, enabled, and still inside the same container
+  (a transparent native control laid over a sibling that shows the same label, as on Amazon,
+  counts as visible: the user sees that label as the button);
 - its visible text/aria is unchanged since the request;
 - the content script has not clicked anything else on this document in this page load;
 - the user has not disabled the extension globally or for this host.
