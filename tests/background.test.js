@@ -237,6 +237,30 @@ describe("message router", () => {
     assert.deepEqual(mock._badges.at(-1), { tabId: 7, text: "" });
   });
 
+  test("siteOf approximates the registrable domain", () => {
+    assert.equal(bg.siteOf("abonnement.lefigaro.fr"), "lefigaro.fr");
+    assert.equal(bg.siteOf("www.lefigaro.fr"), "lefigaro.fr");
+    assert.equal(bg.siteOf("news.bbc.co.uk"), "bbc.co.uk");
+    assert.equal(bg.siteOf("edition.cnn.com"), "cnn.com");
+    assert.equal(bg.siteOf("gov.uk"), "gov.uk");
+    assert.equal(bg.siteOf("127.0.0.1"), "127.0.0.1");
+    assert.equal(bg.sameSite("abonnement.lefigaro.fr", "www.lefigaro.fr"), true);
+    assert.equal(bg.sameSite("lefigaro.fr", "lemonde.fr"), false);
+    assert.equal(bg.sameSite("", "lemonde.fr"), false);
+  });
+
+  test("a cookie wall that redirects to a subscription subdomain keeps the rejection", async () => {
+    await bg.handleMessage({ type: "getSettings" }, contentSender(9, 0, "https://www.lefigaro.fr/", "https://www.lefigaro.fr/"));
+    await bg.handleMessage({ type: "status", status: { outcome: "rejected", layer: "rules", cmp: "appconsent", reason: "AppConsent" } }, contentSender(9, 0, "https://www.lefigaro.fr/", "https://www.lefigaro.fr/"));
+    for (const fn of mock._listeners.updated) fn(9, { status: "loading" }, { url: "https://abonnement.lefigaro.fr/lefigaro?source=cmp-cookie-wall" });
+    await new Promise((r) => setTimeout(r, 10));
+    await bg.handleMessage({ type: "getSettings" }, contentSender(9, 0, "https://abonnement.lefigaro.fr/x", "https://abonnement.lefigaro.fr/x"));
+    await bg.handleMessage({ type: "status", status: { outcome: "none", layer: null, cmp: null, reason: "" } }, contentSender(9, 0, "https://abonnement.lefigaro.fr/x", "https://abonnement.lefigaro.fr/x"));
+    const s = await bg.handleMessage({ type: "getStatus", tabId: 9 }, popupSender);
+    assert.equal(s.tab.status.outcome, "rejected");
+    assert.equal(s.tab.status.carried, true);
+  });
+
   test("navigation with an unknown destination carries the rejection until a different host reports in", async () => {
     await bg.handleMessage({ type: "getSettings" }, contentSender(8, 0));
     await bg.handleMessage({ type: "status", status: { outcome: "rejected", layer: "model", cmp: null, reason: "Reject all" } }, contentSender(8, 0));

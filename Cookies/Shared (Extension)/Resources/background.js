@@ -43,6 +43,23 @@ function normalizeHost(value) {
   return /^[a-z0-9.-]{1,253}$/.test(host) || /^\[[0-9a-f:.]+\]$/.test(host) ? host : "";
 }
 
+// Second-level labels under which the registrable name is one level deeper
+// (example.co.uk, example.com.au). An approximation of the public-suffix list
+// that is good enough for "did the site stay the same across a redirect".
+const SECOND_LEVEL_SUFFIXES = new Set(["co", "com", "org", "net", "gov", "edu", "ac", "ltd", "plc", "me", "or", "ne", "go"]);
+
+/** Registrable site of a host: lefigaro.fr for abonnement.lefigaro.fr, bbc.co.uk for news.bbc.co.uk. */
+function siteOf(host) {
+  const h = normalizeHost(host);
+  if (!h || h.startsWith("[") || /^\d+\.\d+\.\d+\.\d+$/.test(h)) return h;
+  const labels = h.split(".");
+  if (labels.length <= 2) return h;
+  const keep = labels[labels.length - 1].length === 2 && SECOND_LEVEL_SUFFIXES.has(labels[labels.length - 2]) ? 3 : 2;
+  return labels.slice(-keep).join(".");
+}
+
+const sameSite = (a, b) => !!a && !!b && siteOf(a) === siteOf(b);
+
 function hostFromUrl(url) {
   if (typeof url !== "string") return "";
   try {
@@ -214,7 +231,7 @@ function aggregateStatus(entry) {
   // Many sites reload once consent is saved; the next document then finds no
   // banner. Report the rejection that caused that instead of "none".
   const carry = entry.carry;
-  if ((!best || best.outcome === "none") && carry && carry.status && (!entry.host || entry.host === carry.host) && Date.now() - (carry.status.at || 0) <= CARRY_MS) {
+  if ((!best || best.outcome === "none") && carry && carry.status && (!entry.host || sameSite(entry.host, carry.host)) && Date.now() - (carry.status.at || 0) <= CARRY_MS) {
     return carry.status;
   }
   return best;
@@ -234,8 +251,8 @@ async function updateBadge(tabId) {
 
 /**
  * Forget a tab's state. On navigation (`carry`), a rejection is kept for the
- * popup when the new document is on the same host (or the host is not known
- * yet); it is dropped the moment a different host shows up.
+ * popup when the new document is on the same site (or the host is not known
+ * yet); it is dropped the moment a different site shows up.
  */
 async function clearTab(tabId, { carry = false, url = "" } = {}) {
   await loadState();
@@ -244,7 +261,8 @@ async function clearTab(tabId, { carry = false, url = "" } = {}) {
   if (carry && previous && previous.host) {
     const status = aggregateStatus(previous);
     const nextHost = hostFromUrl(url);
-    if (status && status.outcome === "rejected" && (!nextHost || nextHost === previous.host)) {
+    // Same site covers cookie walls that bounce to a subscription subdomain.
+    if (status && status.outcome === "rejected" && (!nextHost || sameSite(nextHost, previous.host))) {
       tabs.set(tabId, { host: nextHost, frames: {}, classify: 0, carry: { host: previous.host, status: { ...status, carried: true } } });
     }
   }
@@ -394,6 +412,8 @@ if (api && api.tabs) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
+    siteOf,
+    sameSite,
     NATIVE_APP_ID,
     DEFAULT_SETTINGS,
     normalizeHost,
