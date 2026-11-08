@@ -41,9 +41,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-main {
+/* Safari sizes the popover from the document's own size, so the width must not
+   depend on the viewport: while Safari measures, the viewport is near zero, and
+   anything relative to it (vw, %, max-width: 100vw) collapses the layout to a
+   one-word-wide column. */
+body {
   width: 320px;
-  max-width: 100vw;
+}
+
+main {
   padding: 14px 14px 12px;
 }
 
