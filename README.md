@@ -53,6 +53,14 @@ To build, sign with your Apple Development certificate, and install to /Applicat
 scripts/install-macos.sh
 ```
 
+To build, sign, install and launch on a connected iPhone (the first paired one, or pass a UDID):
+
+```sh
+scripts/install-ios.sh [team-id] [device-udid]
+```
+
+Then turn on Cookies in Settings → Apps → Safari → Extensions and allow it on all websites.
+
 Command-line build (no signing):
 
 ```sh
