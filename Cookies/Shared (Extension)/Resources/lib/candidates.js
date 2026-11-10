@@ -1,7 +1,7 @@
 /*
- * lib/candidates.js — build the minimal `identifyRejectControl` payload for
+ * lib/candidates.js - build the minimal `identifyRejectControl` payload for
  * the native handler (ARCHITECTURE, "Candidate controls" and "Message:
- * extension → native"). Only short labels and a whitelisted handful of
+ * extension -> native"). Only short labels and a whitelisted handful of
  * attributes leave the page; element references stay in a Map that lives for
  * this one request.
  */
@@ -33,7 +33,7 @@
     lang: 35,
   });
 
-  /** id, class, name and data-* only; values ≤ 60 chars; at most 6. */
+  /** id, class, name and data-* only; values <= 60 chars; at most 6. */
   function pickAttrs(el) {
     const attrs = {};
     let count = 0;

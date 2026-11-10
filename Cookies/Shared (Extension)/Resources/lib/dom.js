@@ -1,5 +1,5 @@
 /*
- * lib/dom.js — DOM helpers shared by the content-script modules.
+ * lib/dom.js - DOM helpers shared by the content-script modules.
  *
  * Everything here is read-only with respect to the page: no element is
  * created, mutated or styled. Functions accept an optional `env` object so
@@ -36,8 +36,8 @@
     if (value == null) return "";
     return String(value)
       .normalize("NFKC")
-      .replace(/[­​-‍⁠﻿]/g, "")
-      .replace(/[‘’ʼ`´]/g, "'")
+      .replace(/[\u00ad\u200b-\u200d\u2060\ufeff]/g, "")
+      .replace(/[\u2018\u2019\u02bc`\u00b4]/g, "'")
       .replace(/\s+/g, " ")
       .trim();
   }

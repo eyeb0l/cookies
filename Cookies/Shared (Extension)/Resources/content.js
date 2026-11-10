@@ -1,7 +1,7 @@
 /*
- * content.js — runs in every frame at document_idle, after lib/*.js (see
+ * content.js - runs in every frame at document_idle, after lib/*.js (see
  * manifest.json). Orchestrates Layer 1 (CMP rules), Layer 2 (on-device model
- * via background → native) and the safety gate. Never throws into the page.
+ * via background -> native) and the safety gate. Never throws into the page.
  */
 "use strict";
 
@@ -51,7 +51,7 @@
     reported: false,
     attempted: new Set(), // rule ids whose multi-step flow already ran
     seenContainers: new WeakSet(),
-    candidate: null, // { element, since } — Layer 2 stability tracking
+    candidate: null, // { element, since } - Layer 2 stability tracking
     observer: null,
     timers: [],
     passTimer: null,
@@ -240,7 +240,7 @@
       lang: document.documentElement.getAttribute("lang") || "",
     });
     if (!built.request) {
-      // Fail closed (too many controls, nothing reject-like, …): leave it alone.
+      // Fail closed (too many controls, nothing reject-like, ...): leave it alone.
       log("layer 2 skipped", built.reason);
       report({ outcome: "skipped", layer: "model", reason: "", code: built.reason });
       return;

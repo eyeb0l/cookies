@@ -1,5 +1,5 @@
 /*
- * lib/detect.js — Layer 2: find and score a plausible consent container for
+ * lib/detect.js - Layer 2: find and score a plausible consent container for
  * banners no CMP rule knows about (ARCHITECTURE, "Finding the consent
  * container"). Pure functions over a Document/Element; `options.env` lets
  * tests override visibility and geometry (see lib/dom.js).
@@ -36,16 +36,16 @@
     "samtycke*", "samtykke*", "suostumus*", "zgod*", "souhlas*", "gdpr", "dsgvo", "rgpd", "lgpd", "ccpa",
     "we value your privacy", "your privacy choices", "privacy choices", "privacy preferences", "privacy settings",
     "tracking technologies", "similar technologies", "legitimate interest*", "berechtigtes interesse",
-    "intérêt légitime", "interés legítimo", "interesse legittimo", "kakor", "informasjonskapsler", "eväste*",
-    "süti*", "çerez*", "куки", "файлы cookie", "クッキー", "쿠키", "datenschutzeinstellungen", "privatsphäre-einstellungen",
+    "int\u00e9r\u00eat l\u00e9gitime", "inter\u00e9s leg\u00edtimo", "interesse legittimo", "kakor", "informasjonskapsler", "ev\u00e4ste*",
+    "s\u00fcti*", "\u00e7erez*", "\u043a\u0443\u043a\u0438", "\u0444\u0430\u0439\u043b\u044b cookie", "\u30af\u30c3\u30ad\u30fc", "\ucfe0\ud0a4", "datenschutzeinstellungen", "privatsph\u00e4re-einstellungen",
   ];
   // Weak signals: common in consent notices but also elsewhere.
   const WEAK_KEYWORDS = [
-    "privacy", "privacy policy", "datenschutz*", "privacidad", "privacidade", "confidentialité", "vie privée",
+    "privacy", "privacy policy", "datenschutz*", "privacidad", "privacidade", "confidentialit\u00e9", "vie priv\u00e9e",
     "riservatezza", "privacybeleid", "tracking", "your choices", "personal data", "personenbezogene*",
-    "données personnelles", "datos personales", "dati personali", "partners", "partner", "vendors",
-    "personalised", "personalized", "personalisierte*", "analytics", "advertising", "werbung", "publicité",
-    "publicidad", "pubblicità", "zustimmung", "zustimmen",
+    "donn\u00e9es personnelles", "datos personales", "dati personali", "partners", "partner", "vendors",
+    "personalised", "personalized", "personalisierte*", "analytics", "advertising", "werbung", "publicit\u00e9",
+    "publicidad", "pubblicit\u00e0", "zustimmung", "zustimmen",
   ];
   const STRONG_RE = gate.compileTerms(STRONG_KEYWORDS);
   const WEAK_RE = gate.compileTerms(WEAK_KEYWORDS);
@@ -172,7 +172,7 @@
 
   /**
    * Overlays: `position: fixed` always paints above in-flow content; sticky and
-   * dialogs need z-index ≥ 10 (on itself or an ancestor), a top-level position,
+   * dialogs need z-index >= 10 (on itself or an ancestor), a top-level position,
    * or an open modal <dialog>. In-flow banners must be top-level unless they
    * are explicitly named as a cookie/consent element (NHS and Twitch nest
    * theirs several wrappers deep); a role alone is not enough when nested.
@@ -290,7 +290,7 @@
 
   /**
    * Banner-like ancestor (inclusive) in the composed tree: the nearest overlay
-   * (fixed/sticky/dialog), or else the *outermost* qualifying in-flow block —
+   * (fixed/sticky/dialog), or else the *outermost* qualifying in-flow block -
    * in-flow banners nest cookie-named wrappers (GOV.UK's message, Twitch's
    * content) and the outer one is the banner.
    */

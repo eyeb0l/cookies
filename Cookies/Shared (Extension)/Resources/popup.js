@@ -1,4 +1,4 @@
-/* popup.js — settings toggles and the current tab's status. */
+/* popup.js - settings toggles and the current tab's status. */
 "use strict";
 
 (() => {
@@ -17,7 +17,7 @@
     status_skipped_too_many: "Skipped: banner too complex",
     status_skipped_gate: "Skipped: failed safety check",
     status_skipped: "Skipped",
-    status_error_steps: "Couldn’t finish rejecting via $1",
+    status_error_steps: "Couldn\u2019t finish rejecting via $1",
     status_error_verify: "Clicked reject, but the banner is still showing",
     status_error: "Something went wrong",
   };
