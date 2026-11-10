@@ -1,5 +1,5 @@
 /*
- * lib/gate.js — multilingual label matchers and the post-reply safety gate.
+ * lib/gate.js - multilingual label matchers and the post-reply safety gate.
  *
  * The native side already validates the model's choice; everything here is a
  * second, independent check in the page (belt and braces). The gate fails
@@ -71,11 +71,11 @@
     "nur essenzielle*", "nur essentielle*", "nur technisch notwendige*", "nur funktionale*", "notwendige cookies verwenden",
     // French
     "refuser", "tout refuser", "je refuse", "refusez*", "rejeter", "tout rejeter", "continuer sans accepter",
-    "continuer sans", "non merci", "je n'accepte pas", "pas d'accord", "uniquement les cookies nécessaires",
-    "nécessaires uniquement", "strictement nécessaires uniquement", "seulement les nécessaires", "refuser tout",
+    "continuer sans", "non merci", "je n'accepte pas", "pas d'accord", "uniquement les cookies n\u00e9cessaires",
+    "n\u00e9cessaires uniquement", "strictement n\u00e9cessaires uniquement", "seulement les n\u00e9cessaires", "refuser tout",
     // Spanish / Catalan
     "rechazar", "rechazar todo", "rechazar todas", "rechazo", "denegar", "no acepto", "no aceptar",
-    "solo necesarias", "sólo necesarias", "solo las necesarias", "solo cookies necesarias", "continuar sin aceptar",
+    "solo necesarias", "s\u00f3lo necesarias", "solo las necesarias", "solo cookies necesarias", "continuar sin aceptar",
     "no, gracias", "no gracias", "rebutjar",
     // Italian
     "rifiuta", "rifiuta tutto", "rifiuta tutti", "rifiutare", "rifiuto", "non accetto", "solo necessari",
@@ -84,18 +84,18 @@
     "weigeren", "alles weigeren", "weiger*", "afwijzen", "alles afwijzen", "niet akkoord", "alleen noodzakelijke*",
     "alleen functionele*", "nee bedankt",
     // Portuguese
-    "rejeitar", "rejeitar tudo", "recusar", "recusar tudo", "não aceito", "apenas necessários",
-    "apenas os necessários", "continuar sem aceitar",
+    "rejeitar", "rejeitar tudo", "recusar", "recusar tudo", "n\u00e3o aceito", "apenas necess\u00e1rios",
+    "apenas os necess\u00e1rios", "continuar sem aceitar",
     // Nordic
-    "avvisa", "avvisa alla", "avböj", "neka", "endast nödvändiga", "nej tack", "avvis", "avvis alle", "avslå",
-    "kun nødvendige*", "afvis", "afvis alle", "afslå", "hylkää", "hylkää kaikki", "vain välttämättömät", "kieltäydy",
+    "avvisa", "avvisa alla", "avb\u00f6j", "neka", "endast n\u00f6dv\u00e4ndiga", "nej tack", "avvis", "avvis alle", "avsl\u00e5",
+    "kun n\u00f8dvendige*", "afvis", "afvis alle", "afsl\u00e5", "hylk\u00e4\u00e4", "hylk\u00e4\u00e4 kaikki", "vain v\u00e4ltt\u00e4m\u00e4tt\u00f6m\u00e4t", "kielt\u00e4ydy",
     // Central / Eastern European
-    "odrzuć", "odrzuć wszystkie", "odrzucam", "tylko niezbędne", "nie zgadzam się", "odmítnout", "odmítnout vše",
-    "pouze nezbytné", "odmietnuť", "odmietnuť všetko", "elutasít*", "csak a szükséges*", "respinge", "respinge tot",
-    "refuz*", "odbij", "zavrni", "отклонить", "отклонить все", "отказаться", "відхилити", "отхвърляне", "απόρριψη",
-    "απόρριψη όλων", "reddet", "tümünü reddet",
+    "odrzu\u0107", "odrzu\u0107 wszystkie", "odrzucam", "tylko niezb\u0119dne", "nie zgadzam si\u0119", "odm\u00edtnout", "odm\u00edtnout v\u0161e",
+    "pouze nezbytn\u00e9", "odmietnu\u0165", "odmietnu\u0165 v\u0161etko", "elutas\u00edt*", "csak a sz\u00fcks\u00e9ges*", "respinge", "respinge tot",
+    "refuz*", "odbij", "zavrni", "\u043e\u0442\u043a\u043b\u043e\u043d\u0438\u0442\u044c", "\u043e\u0442\u043a\u043b\u043e\u043d\u0438\u0442\u044c \u0432\u0441\u0435", "\u043e\u0442\u043a\u0430\u0437\u0430\u0442\u044c\u0441\u044f", "\u0432\u0456\u0434\u0445\u0438\u043b\u0438\u0442\u0438", "\u043e\u0442\u0445\u0432\u044a\u0440\u043b\u044f\u043d\u0435", "\u03b1\u03c0\u03cc\u03c1\u03c1\u03b9\u03c8\u03b7",
+    "\u03b1\u03c0\u03cc\u03c1\u03c1\u03b9\u03c8\u03b7 \u03cc\u03bb\u03c9\u03bd", "reddet", "t\u00fcm\u00fcn\u00fc reddet",
     // CJK and others
-    "拒否", "すべて拒否", "拒绝", "全部拒绝", "拒絕", "거부", "모두 거부", "رفض",
+    "\u62d2\u5426", "\u3059\u3079\u3066\u62d2\u5426", "\u62d2\u7edd", "\u5168\u90e8\u62d2\u7edd", "\u62d2\u7d55", "\uac70\ubd80", "\ubaa8\ub450 \uac70\ubd80", "\u0631\u0641\u0636",
   ];
 
   // Labels that grant consent. "Only allow essential" contains "allow" and is
@@ -110,11 +110,11 @@
     "accepter", "tout accepter", "j'accepte", "d'accord", "autoriser", "tout autoriser", "j'ai compris",
     "aceptar", "aceptar todo", "aceptar todas", "acepto", "permitir", "entendido", "accetta", "accetto",
     "accetta tutto", "accetta tutti", "consenti", "acconsento", "ho capito", "accepteren", "alles accepteren",
-    "akkoord", "toestaan", "aceitar", "aceitar tudo", "concordo", "godkänn", "acceptera", "acceptera alla",
-    "tillåt", "godta", "godta alle", "tillat", "accepter alle", "hyväksy", "hyväksy kaikki", "akceptuję",
-    "zaakceptuj", "zgadzam się", "přijmout", "přijmout vše", "souhlasím", "elfogad*", "accept*", "kabul",
-    "kabul et", "принять", "принять все", "согласен", "прийняти", "αποδοχή", "同意", "接受", "全部接受",
-    "すべて許可", "同意する", "동의", "허용", "모두 허용",
+    "akkoord", "toestaan", "aceitar", "aceitar tudo", "concordo", "godk\u00e4nn", "acceptera", "acceptera alla",
+    "till\u00e5t", "godta", "godta alle", "tillat", "accepter alle", "hyv\u00e4ksy", "hyv\u00e4ksy kaikki", "akceptuj\u0119",
+    "zaakceptuj", "zgadzam si\u0119", "p\u0159ijmout", "p\u0159ijmout v\u0161e", "souhlas\u00edm", "elfogad*", "accept*", "kabul",
+    "kabul et", "\u043f\u0440\u0438\u043d\u044f\u0442\u044c", "\u043f\u0440\u0438\u043d\u044f\u0442\u044c \u0432\u0441\u0435", "\u0441\u043e\u0433\u043b\u0430\u0441\u0435\u043d", "\u043f\u0440\u0438\u0439\u043d\u044f\u0442\u0438", "\u03b1\u03c0\u03bf\u03b4\u03bf\u03c7\u03ae", "\u540c\u610f", "\u63a5\u53d7", "\u5168\u90e8\u63a5\u53d7",
+    "\u3059\u3079\u3066\u8a31\u53ef", "\u540c\u610f\u3059\u308b", "\ub3d9\uc758", "\ud5c8\uc6a9", "\ubaa8\ub450 \ud5c8\uc6a9",
   ];
 
   // Controls that must never be offered to the model or clicked: they could
@@ -126,12 +126,12 @@
     "download", "install", "upload", "share", "post", "reply", "transfer", "withdraw", "donate", "job", "jobs",
     "offer", "offers", "application", "add to cart", "add to basket",
     "kaufen", "jetzt kaufen", "bezahlen", "zahlen", "zur kasse", "bestellen", "abonnieren", "abbestellen",
-    "absenden", "senden", "bewerben", "anmelden", "abmelden", "einloggen", "registrieren", "löschen", "entfernen",
-    "bestätigen", "herunterladen", "installieren", "hochladen", "teilen", "antworten", "überweisen", "spenden",
-    "acheter", "payer", "commander", "s'abonner", "se désabonner", "envoyer", "soumettre", "postuler",
-    "se connecter", "connexion", "s'inscrire", "inscription", "supprimer", "retirer", "confirmer", "télécharger",
-    "installer", "partager", "répondre", "faire un don",
-    "comprar", "pagar", "suscribirse", "suscribir", "enviar", "iniciar sesión", "registrarse", "eliminar",
+    "absenden", "senden", "bewerben", "anmelden", "abmelden", "einloggen", "registrieren", "l\u00f6schen", "entfernen",
+    "best\u00e4tigen", "herunterladen", "installieren", "hochladen", "teilen", "antworten", "\u00fcberweisen", "spenden",
+    "acheter", "payer", "commander", "s'abonner", "se d\u00e9sabonner", "envoyer", "soumettre", "postuler",
+    "se connecter", "connexion", "s'inscrire", "inscription", "supprimer", "retirer", "confirmer", "t\u00e9l\u00e9charger",
+    "installer", "partager", "r\u00e9pondre", "faire un don",
+    "comprar", "pagar", "suscribirse", "suscribir", "enviar", "iniciar sesi\u00f3n", "registrarse", "eliminar",
     "borrar", "confirmar", "descargar", "instalar", "compartir", "responder", "donar",
     "acquista", "compra", "paga", "ordina", "iscriviti", "invia", "accedi", "registrati", "elimina", "conferma",
     "scarica", "condividi", "rispondi", "dona",

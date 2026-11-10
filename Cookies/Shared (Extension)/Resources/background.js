@@ -1,5 +1,5 @@
 /*
- * background.js — settings, per-tab status for the popup, and the bridge to
+ * background.js - settings, per-tab status for the popup, and the bridge to
  * the native handler (browser.runtime.sendNativeMessage). Non-persistent:
  * state that must survive suspension lives in storage.
  */
@@ -137,7 +137,7 @@ function errorResult(reason) {
 
 /**
  * Coerce whatever native code returned into a well-formed result. Anything
- * malformed becomes { status: "error" } — never "ok".
+ * malformed becomes { status: "error" } - never "ok".
  */
 function normalizeResult(raw, request) {
   if (!isPlainObject(raw)) return errorResult("Malformed reply from the app.");
@@ -240,7 +240,7 @@ function aggregateStatus(entry) {
 async function updateBadge(tabId) {
   if (!api || !api.action || typeof tabId !== "number" || tabId < 0) return;
   const status = aggregateStatus(tabs.get(tabId));
-  const text = status && status.outcome === "rejected" ? "✓" : "";
+  const text = status && status.outcome === "rejected" ? "\u2713" : "";
   try {
     await api.action.setBadgeText({ tabId, text });
     if (text && api.action.setBadgeBackgroundColor) await api.action.setBadgeBackgroundColor({ tabId, color: "#2563eb" });

@@ -49,6 +49,15 @@ body {
   width: 320px;
 }
 
+/* On iPhone the popup is a full-width sheet with a fixed viewport rather than
+   a content-sized popover, so fill it. device-width keeps iPad (a popover, like
+   macOS) on the fixed width. */
+@media (hover: none) and (pointer: coarse) and (max-device-width: 600px) {
+  body {
+    width: auto;
+  }
+}
+
 main {
   padding: 14px 14px 12px;
 }

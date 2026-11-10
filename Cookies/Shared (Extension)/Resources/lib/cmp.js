@@ -1,5 +1,5 @@
 /*
- * lib/cmp.js — generic Layer 1 engine. Knows nothing about specific CMPs;
+ * lib/cmp.js - generic Layer 1 engine. Knows nothing about specific CMPs;
  * everything CMP-specific is data in lib/rules.js.
  */
 "use strict";

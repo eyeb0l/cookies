@@ -10,6 +10,7 @@ import WebKit
 
 #if os(iOS)
 import UIKit
+import SafariServices
 typealias PlatformViewController = UIViewController
 #elseif os(macOS)
 import Cocoa
@@ -57,6 +58,14 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
         guard pageLoaded else { return }
 #if os(iOS)
         webView.evaluateJavaScript("show('ios')")
+        // iOS can only report the extension's state from 26.2; earlier
+        // versions keep the neutral "turn it on" instructions.
+        if #available(iOS 26.2, *) {
+            Task { @MainActor [weak self] in
+                guard let state = try? await SFSafariExtensionManager.stateOfExtension(withIdentifier: extensionBundleIdentifier) else { return }
+                _ = try? await self?.webView.evaluateJavaScript("show('ios', \(state.isEnabled))")
+            }
+        }
 #elseif os(macOS)
         webView.evaluateJavaScript("show('mac')")
         Task { @MainActor [weak self] in

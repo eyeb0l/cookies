@@ -1,5 +1,5 @@
 /*
- * lib/rules.js — Layer 1: deterministic rules for known consent-management
+ * lib/rules.js - Layer 1: deterministic rules for known consent-management
  * platforms (CMPs). Pure data; the generic engine lives in lib/cmp.js.
  *
  * Rule shape (see docs/ARCHITECTURE.md):
