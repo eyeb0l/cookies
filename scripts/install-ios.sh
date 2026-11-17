@@ -1,10 +1,10 @@
 #!/bin/zsh
 # Build the iOS app (Release) signed with your Apple Development team,
-# install it on a connected iPhone, and launch it.
+# install it on a connected iPhone or iPad, and launch it.
 #
 # Usage: scripts/install-ios.sh [team-id] [device-udid]
 #
-# The device defaults to the first paired physical iPhone. Signing is automatic
+# The device defaults to the first paired physical iPhone or iPad. Signing is automatic
 # (Xcode creates or refreshes the provisioning profiles), so the device must be
 # registered with the team, or Xcode must be allowed to register it.
 set -euo pipefail
@@ -43,7 +43,7 @@ EOF
 )"
 fi
 if [[ -z "$DEVICE" ]]; then
-  echo "No paired iPhone found; connect one (and trust this Mac) or pass its UDID as the second argument." >&2
+  echo "No paired iPhone or iPad found; connect one (and trust this Mac) or pass its UDID as the second argument." >&2
   exit 1
 fi
 

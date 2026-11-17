@@ -58,6 +58,23 @@ body {
   }
 }
 
+/* On iPad the popover is a glass panel that clips the page with a larger corner
+   radius than its own, so an opaque page background leaves tinted slivers of
+   glass at the corners. Let the glass be the background, and make the grouped
+   rows a translucent fill on top of it, as native popovers do. */
+@media (hover: none) and (pointer: coarse) and (min-device-width: 601px) {
+  :root {
+    --bg: transparent;
+    --surface: rgba(120, 120, 128, 0.12);
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (min-device-width: 601px) and (prefers-color-scheme: dark) {
+  :root {
+    --surface: rgba(120, 120, 128, 0.24);
+  }
+}
+
 main {
   padding: 14px 14px 12px;
 }
